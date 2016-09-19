@@ -1,0 +1,30 @@
+language: python
+
+python: '3.5'
+
+addons:
+  postgresql: "9.4"
+
+cache:
+  directories:
+    - $HOME/.cache/pip
+
+before_install:
+  - pip install --upgrade pip
+  - pip install pylama
+  - pip install isort
+  - pip install lizard
+  - pip install coverage
+
+install:
+  - pip install -r requirements.txt
+
+script:
+  - pylama forgot_password
+  - coverage run --source forgot_password setup.py test
+  - lizard forgot_password -C 10 -w -i 0
+  - coverage report -m --omit *tests*
+
+notifications:
+  slack:
+    secure: "ZX3YHZzO8lPgfmFC5qFmsalfpUSWqR14IrC0J3MEgPJ3+QE+kqDaNfw9ij5IDcqbXsBgAAVYxD+xV3EOfb2QYfY/RL5tmS6GgjlOPFm1H2173qX9RrLZCwtfUCoZ+U2o5wPZMeV1wk0e2VRrmGvSQsvU8k/SUX600Iu/VBpXMO1ZlYo2idHleW/xR/uFCh3UHKQEdHHI3NuAxaJOyDdjAWswXetHhl0xW6v8BURiGhkoYgVn5PvmH6C/CjpteQbEODzYf9wBWPZruGubdrvHiG27Qn9ByiZ5ivJOf2eGh0w1/lNjav4i0pslH46oCMYcMdfX0WOyekhpCQRWpTc4e6g8O+l4hOrXCsmUbkNDKzOud046zal9U3Hdv6EvbfXKwh9t7hb0fNP8eTFpUA3lu+ffVLU0c0xuIUhXFW5o0qk6nbcK/VsUc0Kp74VRQOEyvBX7xKO1DqPf+N7Qs5LLtLK5wZHDZgQIa6cyGsJ/qdy/2wzam3Vezx4yEm67J+slIFc2miNZyN5H+DmkTcUAMsaZtOviJkn8FBtK4LHVmttBqvQBzsKy6arkM2ax3VYejN5VK0hlc2+Ae/+AssC0Ofsn7GquqQz9qW5Wd++s4No/72vuXzmCDu8JiqPwa//lbEwcZu12w5KU/T9ktIa8n8v201z6ufS6REatOIN2b58="

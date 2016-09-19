@@ -1,0 +1,59 @@
+version: '2'
+
+services:
+  db:
+    image: mdillon/postgis:9.5
+    volumes:
+    - db_data:/var/lib/postgresql/data
+    ports:
+    - "5432"
+  
+  app:
+    image: quay.io/skygeario/skygear-server:latest
+    ports:
+    - "3000:3000" # Skygear API Endpoint (HTTP)
+    volumes:
+    - app_data:/go/src/app/data
+    links:
+    - db
+    command: skygear-server
+    environment:
+      DATABASE_URL: postgresql://postgres:@db/postgres?sslmode=disable
+      APP_NAME: my_skygear_app
+      API_KEY: my_skygear_key
+      MASTER_KEY: my_master_key
+      PLUGINS: FORGOT
+      FORGOT_TRANSPORT: zmq
+      FORGOT_PATH: forgot
+      FORGOT_ARGS: tcp://0.0.0.0:5555
+      TOKEN_STORE: jwt
+      TOKEN_STORE_SECRET: my_skygear_jwt_secret
+      # GOMAXPROCS - The maximum number of Go threads for execution.
+      # When unspecified, the default is the number of CPU available, which
+      # is the recommended setting.
+      #GOMAXPROCS: 1
+  
+  plugin:
+    build:
+      context: .
+    links:
+    - app
+    - db
+    volumes:
+    - ./:/usr/src/app
+    command: py-skygear __init__.py
+    environment:
+      DATABASE_URL: postgresql://postgres:@db:5432/postgres?sslmode=disable 
+      PUBSUB_URL: ws://app:3000/pubsub
+      SKYGEAR_ADDRESS: tcp://app:5555
+      SKYGEAR_ENDPOINT: http://app:3000
+      APP_NAME: my_skygear_app
+      API_KEY: my_skygear_key
+      MASTER_KEY: my_master_key
+
+# The volume container for skygear
+volumes:
+  db_data:
+    driver: local
+  app_data:
+    driver: local
