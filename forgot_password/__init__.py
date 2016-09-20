@@ -1,18 +1,24 @@
 import logging
-import os
 
 import skygear
 from skygear import error as skyerror
 from skygear.error import SkygearException
-from skygear.options import options as skyoptions
 from skygear.utils.db import conn
 
 from . import template
 from .util import email as emailutil
 from .util import user as userutil
+from .options import options as forgetoptions
 
 
 logger = logging.getLogger(__name__)
+
+
+def mail_is_configured():
+    """
+    Returns true if mail is configured
+    """
+    return bool(forgetoptions.smtp_host)
 
 
 @skygear.op('user:forgot-password')
@@ -20,7 +26,7 @@ def forgot_password(email):
     """
     Lambda function to handle forgot password request.
     """
-    if not emailutil.mail_is_configured():
+    if not mail_is_configured():
         logger.error('Mail server is not configured. Configure SMTP_HOST.')
         raise SkygearException('mail server is not configured',
                                skyerror.UnexpectedError)
@@ -45,16 +51,12 @@ def forgot_password(email):
 
         user_record = userutil.get_user_record(c, user.id)
         code = userutil.generate_code(user)
-        appname = os.getenv('FORGOT_PASSWORD_APPNAME', skyoptions.appname)
-        url_prefix = os.getenv('FORGOT_PASSWORD_URL_PREFIX',
-                               skyoptions.skygear_endpoint)
-        if url_prefix.endswith('/'):
-            url_prefix = url_prefix[:-1]
+        url_prefix = forgetoptions.url_prefix
         link = '{0}/reset-password?code={1}&user_id={2}'.format(
             url_prefix, code, user.id)
 
         template_params = {
-            'appname': appname,
+            'appname': forgetoptions.appname,
             'link': link,
             'url_prefix': url_prefix,
             'email': user.email,
@@ -72,13 +74,19 @@ def forgot_password(email):
         if html:
             logger.debug('Generated html reset password email.')
 
-        sender = os.getenv('FORGOT_PASSWORD_SENDER', 'no-reply@skygeario.com')
-        subject = os.getenv('FORGOT_PASSWORD_SUBJECT',
-                            'Reset password instructions')
+        sender = forgetoptions.sender
+        subject = forgetoptions.subject
 
         try:
             logger.debug('About to send email to user.')
-            emailutil.send_mail(sender, email, subject, text, html=html)
+            mailer = emailutil.Mailer(
+                smtp_host=forgetoptions.smtp_host,
+                smtp_port=forgetoptions.smtp_port,
+                smtp_mode=forgetoptions.smtp_mode,
+                smtp_login=forgetoptions.smtp_login,
+                smtp_password=forgetoptions.smtp_password,
+            )
+            mailer.send_mail(sender, email, subject, text, html=html)
             logger.info('Successfully sent reset password email to user.')
         except Exception as ex:
             logger.exception('An error occurred sending reset password email '
