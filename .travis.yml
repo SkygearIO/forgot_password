@@ -21,9 +21,9 @@ install:
 
 script:
   - pylama forgot_password
-  - coverage run --source forgot_password setup.py test
+  #- coverage run --source forgot_password setup.py test
   - lizard forgot_password -C 10 -w -i 0
-  - coverage report -m --omit *tests*
+  #- coverage report -m --omit *tests*
 
 notifications:
   slack:
