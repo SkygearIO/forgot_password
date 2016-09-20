@@ -47,7 +47,7 @@ def forgot_password(email):
         code = userutil.generate_code(user)
         appname = os.getenv('FORGOT_PASSWORD_APPNAME', skyoptions.appname)
         url_prefix = os.getenv('FORGOT_PASSWORD_URL_PREFIX',
-                               skyoptions.skygear_endpoint)
+            os.getenv('URL_PREFIX', skyoptions.skygear_endpoint))  # noqa
         if url_prefix.endswith('/'):
             url_prefix = url_prefix[:-1]
         link = '{0}/reset-password?code={1}&user_id={2}'.format(
