@@ -49,4 +49,10 @@ setup(
       tests_require=[
             'pytest',
       ],
+      package_data={
+          'forgot_password': [
+              'templates/*.html',
+              'templates/*.txt',
+          ],
+      },
 )
