@@ -25,6 +25,5 @@ parser.add_setting('smtp_mode', default='normal')
 parser.add_setting('smtp_login', required=False)
 parser.add_setting('smtp_password', required=False)
 
-add_parser('forgot_password', parser)
-
-options = settings.forgot_password
+if not hasattr(settings, 'forgot_password'):
+    add_parser('forgot_password', parser)
