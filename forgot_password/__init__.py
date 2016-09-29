@@ -16,16 +16,16 @@ import logging
 import skygear
 from skygear import error as skyerror
 from skygear.error import SkygearException
-from skygear.settings import settings as sky_config
+from skygear.settings import settings
 from skygear.utils.db import conn
 
-from . import options  # noqa Register the config to skygear on import
+from . import options  # noqa Register the options to skygear settings on import
 from . import template
 from .util import email as emailutil
 from .util import user as userutil
 
 
-forgetoptions = sky_config.forgot_password
+forgetoptions = settings.forgot_password
 logger = logging.getLogger(__name__)
 
 
