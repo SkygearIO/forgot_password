@@ -1,1 +1,3 @@
-from .forgot_password import *
+from .forgot_password import init
+
+init()

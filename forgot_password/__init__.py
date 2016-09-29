@@ -16,14 +16,16 @@ import logging
 import skygear
 from skygear import error as skyerror
 from skygear.error import SkygearException
+from skygear.settings import settings
 from skygear.utils.db import conn
 
+from . import options  # noqa Register the options to skygear settings on import
 from . import template
 from .util import email as emailutil
 from .util import user as userutil
-from .options import options as forgetoptions
 
 
+forgetoptions = settings.forgot_password
 logger = logging.getLogger(__name__)
 
 
@@ -34,7 +36,6 @@ def mail_is_configured():
     return bool(forgetoptions.smtp_host)
 
 
-@skygear.op('user:forgot-password')
 def forgot_password(email):
     """
     Lambda function to handle forgot password request.
@@ -108,7 +109,6 @@ def forgot_password(email):
         return {'status': 'OK'}
 
 
-@skygear.op('user:reset-password')
 def reset_password(user_id, code, new_password):
     """
     Lambda function to handle reset password request.
@@ -146,7 +146,6 @@ def reset_password_response(**kwargs):
     return skygear.Response(body, content_type='text/html')
 
 
-@skygear.handler('reset-password')
 def reset_password_handler(request):
     """
     A handler for handling reset password request.
@@ -194,3 +193,13 @@ def reset_password_handler(request):
             return skygear.Response(body, content_type='text/html')
 
     return reset_password_response(**template_params)
+
+
+def init():
+    skygear.op('user:forgot-password')(forgot_password)
+    skygear.op('user:reset-password')(reset_password)
+    skygear.handler('reset-password')(reset_password_handler)
+
+
+if forgetoptions.enable:
+    init()
