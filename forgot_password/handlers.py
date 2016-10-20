@@ -26,15 +26,10 @@ from .util import user as userutil
 logger = logging.getLogger(__name__)
 
 
-def reset_password_response(**kwargs):
+def register_forgot_password_op(settings, smtp_settings):
     """
-    A shorthand for returning the reset password form as a response.
+    Register lambda function handling forgot password request
     """
-    body = template.reset_password_form(**kwargs)
-    return skygear.Response(body, content_type='text/html')
-
-
-def register_handlers(settings, smtp_settings):
     @skygear.op('user:forgot-password')
     def forgot_password(email):
         """
@@ -62,9 +57,11 @@ def register_handlers(settings, smtp_settings):
 
             user_record = userutil.get_user_record(c, user.id)
             code = userutil.generate_code(user)
+
             url_prefix = settings.url_prefix
             if url_prefix.endswith('/'):
                 url_prefix = url_prefix[:-1]
+
             link = '{0}/reset-password?code={1}&user_id={2}'.format(
                 url_prefix, code, user.id)
 
@@ -93,7 +90,7 @@ def register_handlers(settings, smtp_settings):
                     smtp_login=smtp_settings.login,
                     smtp_password=smtp_settings.password,
                 )
-                mailer.send_mail(sender, email, subject, text, html=html)
+                mailer.send_mail(sender, user.email, subject, text, html=html)
                 logger.info('Successfully sent reset password email to user.')
             except Exception as ex:
                 logger.exception('An error occurred sending reset password'
@@ -102,6 +99,11 @@ def register_handlers(settings, smtp_settings):
 
             return {'status': 'OK'}
 
+
+def register_reset_password_op(settings):
+    """
+    Register lambda function handling reset password request
+    """
     @skygear.op('user:reset-password')
     def reset_password(user_id, code, new_password):
         """
@@ -129,6 +131,19 @@ def register_handlers(settings, smtp_settings):
 
             return {'status': 'OK'}
 
+
+def reset_password_response(**kwargs):
+    """
+    A shorthand for returning the reset password form as a response.
+    """
+    body = template.reset_password_form(**kwargs)
+    return skygear.Response(body, content_type='text/html')
+
+
+def register_reset_password_handler(setting):
+    """
+    Register HTTP handler for reset password request
+    """
     @skygear.handler('reset-password')
     def reset_password_handler(request):
         """
@@ -174,3 +189,9 @@ def register_handlers(settings, smtp_settings):
                 return skygear.Response(body, content_type='text/html')
 
         return reset_password_response(**template_params)
+
+
+def register_handlers(settings, smtp_settings):
+    register_forgot_password_op(settings, smtp_settings)
+    register_reset_password_op(settings)
+    register_reset_password_handler(settings)
