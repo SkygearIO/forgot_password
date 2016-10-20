@@ -22,7 +22,7 @@ SMTP settings are required for the plugin to send outgoing email.
 
 ### Other settings
 
-* `FORGOT_PASSWORD_APPNAME` - the app name that will appear in the built-in
+* `FORGOT_PASSWORD_APP_NAME` - the app name that will appear in the built-in
   template. If you use a different template, you do not need to supply an
   app name. The default app name is the Skygear Server app name.
 * `FORGOT_PASSWORD_URL_PREFIX` - the URL prefix for accessing the Skygear
@@ -53,7 +53,7 @@ Here are a list of templates you can override:
 
 * `templates/forgot_password/reset_password.html` - HTML form for user
   to enter a new password.
-  
+
 * `templates/forgot_password/reset_password_error.html` - HTML page
   to show when there is an error with the code and User ID of the request.
 

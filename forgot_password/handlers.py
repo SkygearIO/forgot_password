@@ -26,10 +26,6 @@ from .util import user as userutil
 logger = logging.getLogger(__name__)
 
 
-class InvalidConfiguration(Exception):
-    pass
-
-
 def reset_password_response(**kwargs):
     """
     A shorthand for returning the reset password form as a response.
@@ -38,16 +34,19 @@ def reset_password_response(**kwargs):
     return skygear.Response(body, content_type='text/html')
 
 
-def register_handlers(settings):
-    if not settings.smtp_host:
-        logger.error('Mail server is not configured. Configure SMTP_HOST.')
-        raise InvalidConfiguration('mail server is not configured')
-
+def register_handlers(settings, smtp_settings):
     @skygear.op('user:forgot-password')
     def forgot_password(email):
         """
         Lambda function to handle forgot password request.
         """
+        if smtp_settings.host is None:
+            logger.error('Mail server is not configured. Configure SMTP_HOST.')
+            raise SkygearException(
+                'mail server is not configured',
+                skyerror.UnexpectedError
+            )
+
         if email is None:
             raise SkygearException('email is not found',
                                    skyerror.ResourceNotFound)
@@ -64,11 +63,13 @@ def register_handlers(settings):
             user_record = userutil.get_user_record(c, user.id)
             code = userutil.generate_code(user)
             url_prefix = settings.url_prefix
+            if url_prefix.endswith('/'):
+                url_prefix = url_prefix[:-1]
             link = '{0}/reset-password?code={1}&user_id={2}'.format(
                 url_prefix, code, user.id)
 
             template_params = {
-                'appname': settings.appname,
+                'appname': settings.app_name,
                 'link': link,
                 'url_prefix': url_prefix,
                 'email': user.email,
@@ -86,11 +87,11 @@ def register_handlers(settings):
 
             try:
                 mailer = emailutil.Mailer(
-                    smtp_host=settings.smtp_host,
-                    smtp_port=settings.smtp_port,
-                    smtp_mode=settings.smtp_mode,
-                    smtp_login=settings.smtp_login,
-                    smtp_password=settings.smtp_password,
+                    smtp_host=smtp_settings.host,
+                    smtp_port=smtp_settings.port,
+                    smtp_mode=smtp_settings.mode,
+                    smtp_login=smtp_settings.login,
+                    smtp_password=smtp_settings.password,
                 )
                 mailer.send_mail(sender, email, subject, text, html=html)
                 logger.info('Successfully sent reset password email to user.')
