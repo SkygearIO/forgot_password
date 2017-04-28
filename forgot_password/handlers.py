@@ -49,6 +49,8 @@ def register_forgot_password_op(settings, smtp_settings):
         with conn() as c:
             user = userutil.get_user_from_email(c, email)
             if not user:
+                if not settings.secure_match:
+                    return {'status': 'OK'}
                 raise SkygearException('user_id is not found',
                                        skyerror.ResourceNotFound)
             if not user.email:
