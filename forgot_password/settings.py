@@ -23,6 +23,13 @@ def get_settings_parser():
     parser.add_setting('app_name', default=skyoptions.appname)
     parser.add_setting('url_prefix', default=skyoptions.skygear_endpoint)
     parser.add_setting(
+        'secure_match',
+        atype=bool,
+        required=False,
+        resolve=False,
+        default=False
+    )
+    parser.add_setting(
         'sender',
         resolve=False,
         default='no-reply@skygeario.com'
