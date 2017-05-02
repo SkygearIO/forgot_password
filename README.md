@@ -30,6 +30,10 @@ SMTP settings are required for the plugin to send outgoing email.
   The value should include protocol (e.g. `https://`).
 * `FORGOT_PASSWORD_SENDER` - email will be sent from this email address.
 * `FORGOT_PASSWORD_SUBJECT` - subject of the email sent.
+* `FORGOT_PASSWORD_SECURE_MATCH` - an option to require the plugin to return an
+  error if the email on the request is not found; otherwise, the plugin will
+  return OK if the email on the request is not found. The default value of this
+  option is "NO".
 
 ## Templates
 

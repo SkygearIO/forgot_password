@@ -7,7 +7,7 @@ services:
     - db_data:/var/lib/postgresql/data
     ports:
     - "5432"
-  
+
   app:
     image: quay.io/skygeario/skygear-server:latest
     ports:
@@ -32,7 +32,7 @@ services:
       # When unspecified, the default is the number of CPU available, which
       # is the recommended setting.
       #GOMAXPROCS: 1
-  
+
   plugin:
     build:
       context: .
@@ -41,15 +41,16 @@ services:
     - db
     volumes:
     - ./:/usr/src/app
-    command: py-skygear __init__.py
+    command: py-skygear
     environment:
-      DATABASE_URL: postgresql://postgres:@db:5432/postgres?sslmode=disable 
+      DATABASE_URL: postgresql://postgres:@db:5432/postgres?sslmode=disable
       PUBSUB_URL: ws://app:3000/pubsub
       SKYGEAR_ADDRESS: tcp://app:5555
       SKYGEAR_ENDPOINT: http://app:3000
       APP_NAME: my_skygear_app
       API_KEY: my_skygear_key
       MASTER_KEY: my_master_key
+      LOAD_MODULES: forgot_password
 
 # The volume container for skygear
 volumes:
