@@ -42,7 +42,7 @@ setup(
       license='Apache License, Version 2.0',
       install_requires=[
             'Jinja2>=2.8',
-            'pyzmail>=1.0.3',
+            'pyzmail36>=1.0.3',
             'skygear>=0.16.0',
       ],
       cmdclass= {'test': PyTest},
