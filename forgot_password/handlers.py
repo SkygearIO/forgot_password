@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from pathlib import Path
+from urllib.request import urlretrieve
+from urllib.error import HTTPError
 
 import skygear
 from skygear import error as skyerror
@@ -24,6 +27,52 @@ from .util import user as userutil
 
 
 logger = logging.getLogger(__name__)
+
+
+def register_forgot_password_lifecycle_event_handler(settings):
+    """
+    Register lifecycle event handler for forgot password plugin
+    """
+    def download_template(url, name):
+        path_prefix = 'templates/forgot_password'
+        path = '/'.join([path_prefix, name])
+
+        Path(path_prefix).mkdir(parents=True, exist_ok=True)
+        logger.info('Downloading {} from {}'.format(path, url))
+
+        try:
+            urlretrieve(url, path)
+        except HTTPError as e:
+            raise Exception('Failed to download {}: {}'.format(name, e.reason))
+
+    @skygear.event("before-plugins-ready")
+    def download_templates(config):
+        if settings.email_text_url:
+            download_template(settings.email_text_url,
+                              'forgot_password_email.txt')
+
+        if settings.email_html_url:
+            download_template(settings.email_html_url,
+                              'forgot_password_email.html')
+
+        if settings.reset_html_url:
+            download_template(settings.reset_html_url, 'reset_password.html')
+
+        if settings.reset_success_html_url:
+            download_template(settings.reset_success_html_url,
+                              'reset_password_success.html')
+
+        if settings.reset_error_html_url:
+            download_template(settings.reset_error_html_url,
+                              'reset_password_error.html')
+
+        if settings.welcome_email_text_url:
+            download_template(settings.welcome_email_text_url,
+                              'welcome_email.txt')
+
+        if settings.welcome_email_html_url:
+            download_template(settings.welcome_email_html_url,
+                              'welcome_email.html')
 
 
 def register_forgot_password_op(settings, smtp_settings):
@@ -194,6 +243,7 @@ def register_reset_password_handler(setting):
 
 
 def register_handlers(settings, smtp_settings):
+    register_forgot_password_lifecycle_event_handler(settings)
     register_forgot_password_op(settings, smtp_settings)
     register_reset_password_op(settings)
     register_reset_password_handler(settings)
