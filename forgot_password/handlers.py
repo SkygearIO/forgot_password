@@ -194,11 +194,26 @@ def register_reset_password_op(settings, smtp_settings, welcome_email_settings):
             return {'status': 'OK'}
 
 
-def reset_password_response(**kwargs):
+def redirect_response(url):
+    """
+    A shorthand for returning a http redirect response.
+    """
+    return skygear.Response(status=302, headers=[('Location', url)])
+
+
+def reset_password_response_form(**kwargs):
     """
     A shorthand for returning the reset password form as a response.
     """
     body = template.reset_password_form(**kwargs)
+    return skygear.Response(body, content_type='text/html')
+
+
+def reset_password_success_response():
+    """
+    A shorthand for returning the reset password success response.
+    """
+    body = template.reset_password_success()
     return skygear.Response(body, content_type='text/html')
 
 
@@ -255,15 +270,21 @@ def register_reset_password_handler(settings, smtp_settings,
         """
         A handler for handling reset password request.
         """
+        if settings.error_redirect:
+            url_error_response = redirect_response(settings.error_redirect)
+        else:
+            url_error_response = skygear.Response(
+                template.reset_password_error(error='Invalid URL'),
+                content_type='text/html')
+
         code = request.values.get('code')
         user_id = request.values.get('user_id')
 
         with conn() as c:
             user = userutil.get_user_and_validate_code(c, user_id, code)
             if not user:
-                error_msg = 'User not found or code is invalid.'
-                body = template.reset_password_error(error=error_msg)
-                return skygear.Response(body, content_type='text/html')
+                return url_error_response
+
             user_record = userutil.get_user_record(c, user.id)
 
         template_params = {
@@ -276,16 +297,18 @@ def register_reset_password_handler(settings, smtp_settings,
         if request.method == 'POST':
             password = request.values.get('password')
             if not password:
-                return reset_password_response(
+                if settings.error_redirect:
+                    return redirect_response(settings.error_redirect)
+                return reset_password_response_form(
                     error='Password cannot be empty.',
-                    **template_params
-                )
+                    **template_params)
 
             if password != request.values.get('confirm'):
-                return reset_password_response(
+                if settings.error_redirect:
+                    return redirect_response(settings.error_redirect)
+                return reset_password_response_form(
                     error='Confirm password does not match new password.',
-                    **template_params
-                )
+                    **template_params)
 
             with conn() as c:
                 userutil.set_new_password(c, user.id, password)
@@ -297,10 +320,11 @@ def register_reset_password_handler(settings, smtp_settings,
                                        smtp_settings,
                                        welcome_email_settings)
 
-                body = template.reset_password_success()
-                return skygear.Response(body, content_type='text/html')
+                if settings.success_redirect:
+                    return redirect_response(settings.success_redirect)
+                return reset_password_success_response()
 
-        return reset_password_response(**template_params)
+        return reset_password_response_form(**template_params)
 
 
 def register_handlers(settings, smtp_settings, welcome_email_settings):
