@@ -132,6 +132,7 @@ def register_forgot_password_op(settings, smtp_settings):
             html = template.reset_email_html(**template_params)
 
             sender = settings.sender
+            reply_to = settings.reply_to
             subject = settings.subject
 
             try:
@@ -142,7 +143,8 @@ def register_forgot_password_op(settings, smtp_settings):
                     smtp_login=smtp_settings.login,
                     smtp_password=smtp_settings.password,
                 )
-                mailer.send_mail(sender, user.email, subject, text, html=html)
+                mailer.send_mail(sender, user.email, subject, text,
+                                 html=html, reply_to=reply_to)
                 logger.info('Successfully sent reset password email to user.')
             except Exception as ex:
                 logger.exception('An error occurred sending reset password'
@@ -223,6 +225,7 @@ def send_welcome_email(user, user_record, settings, smtp_settings,
         html = template.welcome_email_html(**email_params)
 
         sender = welcome_email_settings.sender
+        reply_to = welcome_email_settings.reply_to
         subject = welcome_email_settings.subject
 
         try:
@@ -233,7 +236,8 @@ def send_welcome_email(user, user_record, settings, smtp_settings,
                 smtp_login=smtp_settings.login,
                 smtp_password=smtp_settings.password,
             )
-            mailer.send_mail(sender, user.email, subject, text, html=html)
+            mailer.send_mail(sender, user.email, subject, text,
+                             html=html, reply_to=reply_to)
             logger.info('Successfully sent welcome email '
                         'to user.')
         except Exception as ex:
