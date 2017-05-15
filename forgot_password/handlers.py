@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from datetime import datetime
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import urlretrieve
@@ -108,14 +109,16 @@ def register_forgot_password_op(settings, smtp_settings):
                                        skyerror.ResourceNotFound)
 
             user_record = userutil.get_user_record(c, user.id)
-            code = userutil.generate_code(user)
+            expire_at = round(datetime.utcnow().timestamp()) + \
+                        settings.reset_url_lifetime
+            code = userutil.generate_code(user, expire_at)
 
             url_prefix = settings.url_prefix
             if url_prefix.endswith('/'):
                 url_prefix = url_prefix[:-1]
 
-            link = '{0}/reset-password?code={1}&user_id={2}'.format(
-                url_prefix, code, user.id)
+            link = '{0}/reset-password?code={1}&user_id={2}&expire_at={3}'\
+                       .format(url_prefix, code, user.id, expire_at)
 
             template_params = {
                 'appname': settings.app_name,
@@ -159,7 +162,7 @@ def register_reset_password_op(settings, smtp_settings, welcome_email_settings):
     Register lambda function handling reset password request
     """
     @skygear.op('user:reset-password')
-    def reset_password(user_id, code, new_password):
+    def reset_password(user_id, code, expire_at, new_password):
         """
         Lambda function to handle reset password request.
         """
@@ -170,8 +173,15 @@ def register_reset_password_op(settings, smtp_settings, welcome_email_settings):
             raise SkygearException('code is not found',
                                    skyerror.ResourceNotFound)
 
+        if not expire_at:
+            raise SkygearException('expire_at is not found',
+                                   skyerror.ResourceNotFound)
+
         with conn() as c:
-            user = userutil.get_user_and_validate_code(c, user_id, code)
+            user = userutil.get_user_and_validate_code(c,
+                                                       user_id,
+                                                       code,
+                                                       expire_at)
             if not user:
                 raise SkygearException('user_id is not found or code invalid',
                                        skyerror.ResourceNotFound)
@@ -277,11 +287,20 @@ def register_reset_password_handler(settings, smtp_settings,
                 template.reset_password_error(error='Invalid URL'),
                 content_type='text/html')
 
+        try:
+            expire_at = int(request.values.get('expire_at'))
+        except:
+            return url_error_response
+
         code = request.values.get('code')
         user_id = request.values.get('user_id')
 
         with conn() as c:
-            user = userutil.get_user_and_validate_code(c, user_id, code)
+            user = userutil.get_user_and_validate_code(c,
+                                                       user_id,
+                                                       code,
+                                                       expire_at)
+
             if not user:
                 return url_error_response
 
@@ -292,6 +311,7 @@ def register_reset_password_handler(settings, smtp_settings,
             'user_record': user_record,
             'code': code,
             'user_id': user_id,
+            'expire_at': expire_at,
         }
 
         if request.method == 'POST':
