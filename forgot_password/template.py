@@ -54,3 +54,18 @@ def reset_password_error(**kwargs):
     template = jinja_env().get_template('reset_password_error.html')
     body = template.render(**kwargs)
     return body
+
+
+def welcome_email_text(**kwargs):
+    template = jinja_env().get_template('welcome_email.txt')
+    text = template.render(**kwargs)
+    return text
+
+
+def welcome_email_html(**kwargs):
+    try:
+        template = jinja_env().get_template('welcome_email.html')
+        html = template.render(**kwargs)
+        return html
+    except jinja2.TemplateNotFound:
+        return None

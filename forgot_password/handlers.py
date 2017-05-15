@@ -13,8 +13,8 @@
 # limitations under the License.
 import logging
 from pathlib import Path
-from urllib.request import urlretrieve
 from urllib.error import HTTPError
+from urllib.request import urlretrieve
 
 import skygear
 from skygear import error as skyerror
@@ -25,26 +25,27 @@ from . import template
 from .util import email as emailutil
 from .util import user as userutil
 
-
 logger = logging.getLogger(__name__)
 
 
-def register_forgot_password_lifecycle_event_handler(settings):
+def download_template(url, name):
+    path_prefix = 'templates/forgot_password'
+    path = '/'.join([path_prefix, name])
+
+    Path(path_prefix).mkdir(parents=True, exist_ok=True)
+    logger.info('Downloading {} from {}'.format(path, url))
+
+    try:
+        urlretrieve(url, path)
+    except HTTPError as e:
+        raise Exception('Failed to download {}: {}'.format(name, e.reason))
+
+
+def register_forgot_password_lifecycle_event_handler(settings,
+                                                     welcome_email_settings):
     """
     Register lifecycle event handler for forgot password plugin
     """
-    def download_template(url, name):
-        path_prefix = 'templates/forgot_password'
-        path = '/'.join([path_prefix, name])
-
-        Path(path_prefix).mkdir(parents=True, exist_ok=True)
-        logger.info('Downloading {} from {}'.format(path, url))
-
-        try:
-            urlretrieve(url, path)
-        except HTTPError as e:
-            raise Exception('Failed to download {}: {}'.format(name, e.reason))
-
     @skygear.event("before-plugins-ready")
     def download_templates(config):
         if settings.email_text_url:
@@ -66,12 +67,12 @@ def register_forgot_password_lifecycle_event_handler(settings):
             download_template(settings.reset_error_html_url,
                               'reset_password_error.html')
 
-        if settings.welcome_email_text_url:
-            download_template(settings.welcome_email_text_url,
+        if welcome_email_settings.text_url:
+            download_template(welcome_email_settings.text_url,
                               'welcome_email.txt')
 
-        if settings.welcome_email_html_url:
-            download_template(settings.welcome_email_html_url,
+        if welcome_email_settings.html_url:
+            download_template(welcome_email_settings.html_url,
                               'welcome_email.html')
 
 
@@ -151,7 +152,7 @@ def register_forgot_password_op(settings, smtp_settings):
             return {'status': 'OK'}
 
 
-def register_reset_password_op(settings):
+def register_reset_password_op(settings, smtp_settings, welcome_email_settings):
     """
     Register lambda function handling reset password request
     """
@@ -180,6 +181,14 @@ def register_reset_password_op(settings):
             userutil.set_new_password(c, user.id, new_password)
             logger.info('Successfully reset password for user.')
 
+            user_record = userutil.get_user_record(c, user.id)
+
+            # send welcome email
+            if welcome_email_settings.enable:
+                send_welcome_email(user, user_record, settings,
+                                   smtp_settings,
+                                   welcome_email_settings)
+
             return {'status': 'OK'}
 
 
@@ -191,7 +200,49 @@ def reset_password_response(**kwargs):
     return skygear.Response(body, content_type='text/html')
 
 
-def register_reset_password_handler(setting):
+def send_welcome_email(user, user_record, settings, smtp_settings,
+                       welcome_email_settings):
+    if not smtp_settings.host:
+        logger.error('Mail server is not configured. '
+                     'Ignore sending welcome email')
+    else:
+        url_prefix = settings.url_prefix
+        if url_prefix.endswith('/'):
+            url_prefix = url_prefix[:-1]
+
+        email_params = {
+            'appname': settings.app_name,
+            'url_prefix': url_prefix,
+            'email': user.email,
+            'user_id': user.id,
+            'user': user,
+            'user_record': user_record,
+        }
+
+        text = template.welcome_email_text(**email_params)
+        html = template.welcome_email_html(**email_params)
+
+        sender = welcome_email_settings.sender
+        subject = welcome_email_settings.subject
+
+        try:
+            mailer = emailutil.Mailer(
+                smtp_host=smtp_settings.host,
+                smtp_port=smtp_settings.port,
+                smtp_mode=smtp_settings.mode,
+                smtp_login=smtp_settings.login,
+                smtp_password=smtp_settings.password,
+            )
+            mailer.send_mail(sender, user.email, subject, text, html=html)
+            logger.info('Successfully sent welcome email '
+                        'to user.')
+        except Exception as ex:
+            logger.error('An error occurred sending welcome '
+                         'email to user: {}'.format(str(ex)))
+
+
+def register_reset_password_handler(settings, smtp_settings,
+                                    welcome_email_settings):
     """
     Register HTTP handler for reset password request
     """
@@ -236,14 +287,22 @@ def register_reset_password_handler(setting):
                 userutil.set_new_password(c, user.id, password)
                 logger.info('Successfully reset password for user.')
 
+                # send welcome email
+                if welcome_email_settings.enable:
+                    send_welcome_email(user, user_record, settings,
+                                       smtp_settings,
+                                       welcome_email_settings)
+
                 body = template.reset_password_success()
                 return skygear.Response(body, content_type='text/html')
 
         return reset_password_response(**template_params)
 
 
-def register_handlers(settings, smtp_settings):
-    register_forgot_password_lifecycle_event_handler(settings)
+def register_handlers(settings, smtp_settings, welcome_email_settings):
+    register_forgot_password_lifecycle_event_handler(settings,
+                                                     welcome_email_settings)
     register_forgot_password_op(settings, smtp_settings)
-    register_reset_password_op(settings)
-    register_reset_password_handler(settings)
+    register_reset_password_op(settings, smtp_settings, welcome_email_settings)
+    register_reset_password_handler(settings, smtp_settings,
+                                    welcome_email_settings)
