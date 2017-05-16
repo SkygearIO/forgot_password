@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import hashlib
+from datetime import datetime
 
 import bcrypt
-from datetime import datetime
 from skygear.options import options as skyoptions
 from skygear.utils.db import get_table, has_table
 from sqlalchemy.sql import func, select

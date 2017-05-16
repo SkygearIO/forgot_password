@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
 from urllib.error import HTTPError
@@ -27,6 +28,15 @@ from .util import email as emailutil
 from .util import user as userutil
 
 logger = logging.getLogger(__name__)
+
+
+class IllegalArgumentError(ValueError):
+    pass
+
+
+ResetPasswordRequestParams = namedtuple(
+    'ResetPasswordRequestParams',
+    ['code', 'user_id', 'expire_at', 'user', 'user_record'])
 
 
 def download_template(url, name):
@@ -110,7 +120,7 @@ def register_forgot_password_op(settings, smtp_settings):
 
             user_record = userutil.get_user_record(c, user.id)
             expire_at = round(datetime.utcnow().timestamp()) + \
-                        settings.reset_url_lifetime
+                settings.reset_url_lifetime
             code = userutil.generate_code(user, expire_at)
 
             url_prefix = settings.url_prefix
@@ -118,7 +128,7 @@ def register_forgot_password_op(settings, smtp_settings):
                 url_prefix = url_prefix[:-1]
 
             link = '{0}/reset-password?code={1}&user_id={2}&expire_at={3}'\
-                       .format(url_prefix, code, user.id, expire_at)
+                .format(url_prefix, code, user.id, expire_at)
 
             template_params = {
                 'appname': settings.app_name,
@@ -157,7 +167,8 @@ def register_forgot_password_op(settings, smtp_settings):
             return {'status': 'OK'}
 
 
-def register_reset_password_op(settings, smtp_settings, welcome_email_settings):
+def register_reset_password_op(settings, smtp_settings,
+                               welcome_email_settings):
     """
     Register lambda function handling reset password request
     """
@@ -219,12 +230,12 @@ def reset_password_response_form(**kwargs):
     return skygear.Response(body, content_type='text/html')
 
 
-def reset_password_success_response():
+def reset_password_error_response():
     """
-    A shorthand for returning the reset password success response.
+    A shorthand for returning the reset password error response.
     """
-    body = template.reset_password_success()
-    return skygear.Response(body, content_type='text/html')
+    body = template.reset_password_error(error='Invalid URL')
+    return skygear.Response(body, status=400, content_type='text/html')
 
 
 def send_welcome_email(user, user_record, settings, smtp_settings,
@@ -270,81 +281,119 @@ def send_welcome_email(user, user_record, settings, smtp_settings,
                          'email to user: {}'.format(str(ex)))
 
 
+def validate_reset_password_request_parameters(db_connection, request):
+    """
+    Validation of reset password request parameters
+    """
+    code = request.values.get('code')
+    user_id = request.values.get('user_id')
+    expire_at_arg = request.values.get('expire_at')
+
+    if not code:
+        raise IllegalArgumentError('code is not found')
+
+    if not user_id:
+        raise IllegalArgumentError('user_id is not found')
+
+    if not expire_at_arg:
+        raise IllegalArgumentError('expire_at is not found')
+
+    try:
+        expire_at = int(expire_at_arg)
+    except ValueError:
+        raise IllegalArgumentError('expire_at is malformed')
+
+    user = userutil.get_user_and_validate_code(db_connection, user_id,
+                                               code, expire_at)
+
+    if not user:
+        raise IllegalArgumentError('cannot find the specified user')
+
+    if not user.email:
+        raise IllegalArgumentError('the specified user does not have an email')
+
+    user_record = userutil.get_user_record(db_connection, user.id)
+
+    return ResetPasswordRequestParams(code=code, user_id=user_id,
+                                      expire_at=expire_at,
+                                      user=user, user_record=user_record)
+
+
+def validate_reset_password_request_password_parameters(request):
+    """
+    Validation of reset password request password parameters
+    """
+    password = request.values.get('password')
+    password_confirm = request.values.get('confirm')
+
+    if not password:
+        raise IllegalArgumentError('password cannot be empty')
+
+    if password != password_confirm:
+        raise IllegalArgumentError(
+            'confirm password does not match the password')
+
+    return password
+
+
 def register_reset_password_handler(settings, smtp_settings,
                                     welcome_email_settings):
     """
     Register HTTP handler for reset password request
     """
-    @skygear.handler('reset-password')
-    def reset_password_handler(request):
+    @skygear.handler('reset-password', method=['GET', 'POST'])
+    def reset_password_form_handler(request):
         """
-        A handler for handling reset password request.
+        A handler for reset password requests.
         """
         if settings.error_redirect:
-            url_error_response = redirect_response(settings.error_redirect)
+            url_error_response = reset_password_error_response = \
+                lambda **kwargs: redirect_response(settings.error_redirect)
         else:
-            url_error_response = skygear.Response(
-                template.reset_password_error(error='Invalid URL'),
-                content_type='text/html')
-
-        try:
-            expire_at = int(request.values.get('expire_at'))
-        except:
-            return url_error_response
-
-        code = request.values.get('code')
-        user_id = request.values.get('user_id')
+            url_error_response = reset_password_error_response
+            reset_password_error_response = reset_password_response_form
 
         with conn() as c:
-            user = userutil.get_user_and_validate_code(c,
-                                                       user_id,
-                                                       code,
-                                                       expire_at)
-
-            if not user:
-                return url_error_response
-
-            user_record = userutil.get_user_record(c, user.id)
+            try:
+                params = validate_reset_password_request_parameters(c, request)
+            except IllegalArgumentError:
+                return url_error_response()
 
         template_params = {
-            'user': user,
-            'user_record': user_record,
-            'code': code,
-            'user_id': user_id,
-            'expire_at': expire_at,
+            'user': params.user,
+            'user_record': params.user_record,
+            'code': params.code,
+            'user_id': params.user_id,
+            'expire_at': params.expire_at,
         }
 
-        if request.method == 'POST':
-            password = request.values.get('password')
-            if not password:
-                if settings.error_redirect:
-                    return redirect_response(settings.error_redirect)
-                return reset_password_response_form(
-                    error='Password cannot be empty.',
-                    **template_params)
+        if request.method != 'POST':
+            return reset_password_response_form(**template_params)
 
-            if password != request.values.get('confirm'):
-                if settings.error_redirect:
-                    return redirect_response(settings.error_redirect)
-                return reset_password_response_form(
-                    error='Confirm password does not match new password.',
-                    **template_params)
+        # Handle form submission
+        try:
+            password = \
+                validate_reset_password_request_password_parameters(request)
+        except IllegalArgumentError as ex:
+            return reset_password_error_response(error=str(ex),
+                                                 **template_params)
 
-            with conn() as c:
-                userutil.set_new_password(c, user.id, password)
-                logger.info('Successfully reset password for user.')
+        with conn() as c:
+            userutil.set_new_password(c, params.user.id, password)
+            logger.info('Successfully reset password for user.')
 
-                # send welcome email
-                if welcome_email_settings.enable:
-                    send_welcome_email(user, user_record, settings,
-                                       smtp_settings,
-                                       welcome_email_settings)
+            # send welcome email
+            if welcome_email_settings.enable:
+                send_welcome_email(params.user, params.user_record,
+                                   settings,
+                                   smtp_settings,
+                                   welcome_email_settings)
 
-                if settings.success_redirect:
-                    return redirect_response(settings.success_redirect)
-                return reset_password_success_response()
+            if settings.success_redirect:
+                return redirect_response(settings.success_redirect)
 
-        return reset_password_response_form(**template_params)
+            body = template.reset_password_success()
+            return skygear.Response(body, content_type='text/html')
 
 
 def register_handlers(settings, smtp_settings, welcome_email_settings):
