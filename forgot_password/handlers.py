@@ -14,16 +14,13 @@
 import logging
 from collections import namedtuple
 from datetime import datetime
-from pathlib import Path
-from urllib.error import HTTPError
-from urllib.request import urlretrieve
 
 import skygear
 from skygear import error as skyerror
 from skygear.error import SkygearException
 from skygear.utils.db import conn
 
-from . import template
+from .template import Template, TemplateProvider
 from .util import email as email_util
 from .util import user as user_util
 
@@ -39,56 +36,30 @@ ResetPasswordRequestParams = namedtuple(
     ['code', 'user_id', 'expire_at', 'user', 'user_record'])
 
 
-def download_template(url, name):
-    path_prefix = 'templates/forgot_password'
-    path = '/'.join([path_prefix, name])
-
-    Path(path_prefix).mkdir(parents=True, exist_ok=True)
-    logger.info('Downloading {} from {}'.format(path, url))
-
-    try:
-        urlretrieve(url, path)
-    except HTTPError as e:
-        raise Exception('Failed to download {}: {}'.format(name, e.reason))
-
-
-def register_forgot_password_lifecycle_event_handler(
-        settings, notification_email_settings):
-
-    """
-    Register lifecycle event handler for forgot password plugin
-    """
-    @skygear.event("before-plugins-ready")
-    def download_templates(config):
-        if settings.email_text_url:
-            download_template(settings.email_text_url,
-                              'forgot_password_email.txt')
-
-        if settings.email_html_url:
-            download_template(settings.email_html_url,
-                              'forgot_password_email.html')
-
-        if settings.reset_html_url:
-            download_template(settings.reset_html_url, 'reset_password.html')
-
-        if settings.reset_success_html_url:
-            download_template(settings.reset_success_html_url,
-                              'reset_password_success.html')
-
-        if settings.reset_error_html_url:
-            download_template(settings.reset_error_html_url,
-                              'reset_password_error.html')
-
-        if notification_email_settings.text_url:
-            download_template(notification_email_settings.text_url,
-                              'notification_email.txt')
-
-        if notification_email_settings.html_url:
-            download_template(notification_email_settings.html_url,
-                              'notification_email.html')
+def build_template_provider(settings, notification_email_settings):
+    return TemplateProvider(
+        Template('reset_email_text', 'forgot_password_email.txt',
+                 download_url=settings.email_text_url),
+        Template('reset_email_html', 'forgot_password_email.html',
+                 download_url=settings.email_html_url,
+                 required=False),
+        Template('reset_password_form', 'reset_password.html',
+                 download_url=settings.reset_html_url),
+        Template('reset_password_success', 'reset_password_success.html',
+                 download_url=settings.reset_success_html_url),
+        Template('reset_password_error', 'reset_password_error.html',
+                 download_url=settings.reset_error_html_url),
+        Template('notification_email_text', 'notification_email.txt',
+                 download_url=notification_email_settings.text_url),
+        Template('notification_email_html', 'notification_email.html',
+                 download_url=notification_email_settings.html_url,
+                 required=False))
 
 
-def register_forgot_password_op(settings, smtp_settings):
+def register_forgot_password_op(template_provider,
+                                settings,
+                                smtp_settings,
+                                notification_email_settings):
     """
     Register lambda function handling forgot password request
     """
@@ -142,8 +113,12 @@ def register_forgot_password_op(settings, smtp_settings):
                 'user_record': user_record,
             }
 
-            text = template.reset_email_text(**template_params)
-            html = template.reset_email_html(**template_params)
+            text = template_provider.\
+                get_template('reset_email_text').\
+                render(**template_params)
+            html = template_provider.\
+                get_template('reset_email_html').\
+                render(**template_params)
 
             sender = settings.sender
             reply_to = settings.reply_to
@@ -168,7 +143,9 @@ def register_forgot_password_op(settings, smtp_settings):
             return {'status': 'OK'}
 
 
-def register_reset_password_op(settings, smtp_settings,
+def register_reset_password_op(template_provider,
+                               settings,
+                               smtp_settings,
                                notification_email_settings):
     """
     Register lambda function handling reset password request
@@ -223,23 +200,21 @@ def redirect_response(url):
     return skygear.Response(status=302, headers=[('Location', url)])
 
 
-def reset_password_response_form(**kwargs):
+def reset_password_response_form(template_provider, **kwargs):
     """
     A shorthand for returning the reset password form as a response.
     """
-    body = template.reset_password_form(**kwargs)
+    body = template_provider.\
+        get_template('reset_password_form').\
+        render(**kwargs)
     return skygear.Response(body, content_type='text/html')
 
 
-def reset_password_error_response():
-    """
-    A shorthand for returning the reset password error response.
-    """
-    body = template.reset_password_error(error='Invalid URL')
-    return skygear.Response(body, status=400, content_type='text/html')
-
-
-def send_notification_email(user, user_record, settings, smtp_settings,
+def send_notification_email(template_provider,
+                            user,
+                            user_record,
+                            settings,
+                            smtp_settings,
                             notification_email_settings):
     if not smtp_settings.host:
         logger.error('Mail server is not configured. '
@@ -258,8 +233,12 @@ def send_notification_email(user, user_record, settings, smtp_settings,
             'user_record': user_record,
         }
 
-        text = template.notification_email_text(**email_params)
-        html = template.notification_email_html(**email_params)
+        text = template_provider.\
+            get_template('notification_email_text').\
+            render(**email_params)
+        html = template_provider.\
+            get_template('notification_email_html').\
+            render(**email_params)
 
         sender = notification_email_settings.sender
         reply_to = notification_email_settings.reply_to
@@ -320,7 +299,7 @@ def validate_reset_password_request_parameters(db_connection, request):
                                       user=user, user_record=user_record)
 
 
-def validate_reset_password_request_password_parameters(request):
+def validate_reset_password_request_password_params(request):
     """
     Validation of reset password request password parameters
     """
@@ -337,7 +316,25 @@ def validate_reset_password_request_password_parameters(request):
     return password
 
 
-def register_reset_password_handler(settings, smtp_settings,
+def response_reset_password_url_error(template_provider, settings, **kwargs):
+    if settings.error_redirect:
+        return redirect_response(settings.error_redirect)
+    body = template_provider.\
+        get_template('reset_password_error').\
+        render(error='Invalid URL')
+    return skygear.Response(body, status=400, content_type='text/html')
+
+
+def response_reset_password_error(template_provider, settings, **kwargs):
+    if settings.error_redirect:
+        return redirect_response(settings.error_redirect)
+    return reset_password_response_form(template_provider,
+                                        **kwargs)
+
+
+def register_reset_password_handler(template_provider,
+                                    settings,
+                                    smtp_settings,
                                     notification_email_settings):
     """
     Register HTTP handler for reset password request
@@ -347,45 +344,43 @@ def register_reset_password_handler(settings, smtp_settings,
         """
         A handler for reset password requests.
         """
-        if settings.error_redirect:
-            response_url_error = response_reset_password_error = \
-                lambda **kwargs: redirect_response(settings.error_redirect)
-        else:
-            response_url_error = reset_password_error_response
-            response_reset_password_error = reset_password_response_form
-
         with conn() as c:
             try:
                 params = validate_reset_password_request_parameters(c, request)
             except IllegalArgumentError:
-                return response_url_error()
+                return response_reset_password_url_error(template_provider,
+                                                         settings)
 
-        template_params = {
-            'user': params.user,
-            'user_record': params.user_record,
-            'code': params.code,
-            'user_id': params.user_id,
-            'expire_at': params.expire_at,
-        }
+            template_params = {
+                'user': params.user,
+                'user_record': params.user_record,
+                'code': params.code,
+                'user_id': params.user_id,
+                'expire_at': params.expire_at,
+            }
 
-        if request.method != 'POST':
-            return reset_password_response_form(**template_params)
+            if request.method != 'POST':
+                return reset_password_response_form(template_provider,
+                                                    **template_params)
 
-        # Handle form submission
-        try:
-            password = \
-                validate_reset_password_request_password_parameters(request)
-        except IllegalArgumentError as ex:
-            return response_reset_password_error(error=str(ex),
-                                                 **template_params)
+            # Handle form submission
+            try:
+                password = \
+                    validate_reset_password_request_password_params(request)
+            except IllegalArgumentError as ex:
+                return response_reset_password_error(template_provider,
+                                                     settings,
+                                                     error=str(ex),
+                                                     **template_params)
 
-        with conn() as c:
             user_util.set_new_password(c, params.user.id, password)
             logger.info('Successfully reset password for user.')
 
             # send notification email
             if notification_email_settings.enable:
-                send_notification_email(params.user, params.user_record,
+                send_notification_email(template_provider,
+                                        params.user,
+                                        params.user_record,
                                         settings,
                                         smtp_settings,
                                         notification_email_settings)
@@ -393,15 +388,24 @@ def register_reset_password_handler(settings, smtp_settings,
             if settings.success_redirect:
                 return redirect_response(settings.success_redirect)
 
-            body = template.reset_password_success()
+            body = template_provider.\
+                get_template('reset_password_success').\
+                render()
             return skygear.Response(body, content_type='text/html')
 
 
 def register_handlers(settings, smtp_settings, notification_email_settings):
-    register_forgot_password_lifecycle_event_handler(
-        settings, notification_email_settings)
-    register_forgot_password_op(settings, smtp_settings)
-    register_reset_password_op(settings, smtp_settings,
+    template_provider = build_template_provider(settings,
+                                                notification_email_settings)
+    register_forgot_password_op(template_provider,
+                                settings,
+                                smtp_settings,
+                                notification_email_settings)
+    register_reset_password_op(template_provider,
+                               settings,
+                               smtp_settings,
                                notification_email_settings)
-    register_reset_password_handler(settings, smtp_settings,
+    register_reset_password_handler(template_provider,
+                                    settings,
+                                    smtp_settings,
                                     notification_email_settings)
