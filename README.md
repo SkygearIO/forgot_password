@@ -45,24 +45,30 @@ SMTP settings are required for the plugin to send outgoing email.
 * `SMTP_LOGIN` - username for authentication (optional)
 * `SMTP_PASSWORD` - password for authentication (optional)
 
-### Welcome email settings
+### Notification email settings
 
-Welcome email settings defines the behaviour of sending welcome email to the
-user when his / her password is reset successfully.
+Notification email settings defines the behaviour of sending notification email
+to the user when his / her password is reset successfully.
 
-* `FORGOT_PASSWORD_WELCOME_EMAIL_ENABLE` - the option indicating whether the
-  plugin will send welcome email to user after password reset. The default
-  value is "NO".
-* `FORGOT_PASSWORD_WELCOME_EMAIL_SENDER` - the sender of the welcome email
-* `FORGOT_PASSWORD_WELCOME_EMAIL_SUBJECT` - the subject of the welcome email
-* `FORGOT_PASSWORD_WELCOME_EMAIL_REPLY_TO` - the "Reply-to" option of the
-  welcome email
+* `FORGOT_PASSWORD_NOTIFICATION_EMAIL_ENABLE` - the option indicating whether
+  the plugin will send notification email to user after password reset. The
+  default value is "NO".
+* `FORGOT_PASSWORD_NOTIFICATION_EMAIL_SENDER` - the sender of the notification
+  email
+* `FORGOT_PASSWORD_NOTIFICATION_EMAIL_SUBJECT` - the subject of the
+  notification email
+* `FORGOT_PASSWORD_NOTIFICATION_EMAIL_REPLY_TO` - the "Reply-to" option of the
+  email
 
 ## Templates
 
 This plugin provides basic HTML and email templates for handling forgot
 password request. You can override the templates easily by creating
-a `templates/forgot_password` folder in your cloudcode project directory.
+a `templates/forgot_password` folder in your cloud code project directory.
+
+Please be reminded that both of text email template and HTML email template
+will be sent to clients. Text template will serve as a fallback for email
+clients not support html email.
 
 You can also specify the corresponding environment variable indicating the url
 of the template. The plugin will download the template before serving requests.
@@ -95,13 +101,15 @@ Here are a list of templates you can override:
   to show when the user has reset the password successfully. The corresponding
   environment variable is `FORGOT_PASSWORD_RESET_SUCCESS_HTML_URL`.
 
-* `templates/forgot_password/welcome_email.txt` - text template for the welcome
-  email sent when password is reset successfully. The corresponding environment
-  variable is `FORGOT_PASSWORD_WELCOME_EMAIL_TEXT_URL`.
+* `templates/forgot_password/notification_email.txt` - text template for the
+  notification email sent when password is reset successfully. The
+  corresponding environment variable is
+  `FORGOT_PASSWORD_NOTIFICATION_EMAIL_TEXT_URL`.
 
-* `templates/forgot_password/welcome_email.html` - html template for the welcome
-  email sent when password is reset successfully. The corresponding environment
-  variable is `FORGOT_PASSWORD_WELCOME_EMAIL_HTML_URL`.
+* `templates/forgot_password/notification_email.html` - html template for the
+  notification email sent when password is reset successfully. The
+  corresponding environment variable is
+  `FORGOT_PASSWORD_NOTIFICATION_EMAIL_HTML_URL`.
 
 You can reference variable for generating HTML/email with dynamic values. Here
 is an incomplete list of variables:

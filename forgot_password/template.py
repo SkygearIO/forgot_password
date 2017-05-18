@@ -56,15 +56,15 @@ def reset_password_error(**kwargs):
     return body
 
 
-def welcome_email_text(**kwargs):
-    template = jinja_env().get_template('welcome_email.txt')
+def notification_email_text(**kwargs):
+    template = jinja_env().get_template('notification_email.txt')
     text = template.render(**kwargs)
     return text
 
 
-def welcome_email_html(**kwargs):
+def notification_email_html(**kwargs):
     try:
-        template = jinja_env().get_template('welcome_email.html')
+        template = jinja_env().get_template('notification_email.html')
         html = template.render(**kwargs)
         return html
     except jinja2.TemplateNotFound:

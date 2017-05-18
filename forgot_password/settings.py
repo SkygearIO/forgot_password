@@ -70,8 +70,8 @@ def get_smtp_settings_parser():
     return parser
 
 
-def get_welcome_email_settings_parser():
-    parser = SettingsParser('FORGOT_PASSWORD_WELCOME_EMAIL')
+def get_notification_email_settings_parser():
+    parser = SettingsParser('FORGOT_PASSWORD_NOTIFICATION_EMAIL')
 
     parser.add_setting(
         'enable',

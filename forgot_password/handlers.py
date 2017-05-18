@@ -52,8 +52,9 @@ def download_template(url, name):
         raise Exception('Failed to download {}: {}'.format(name, e.reason))
 
 
-def register_forgot_password_lifecycle_event_handler(settings,
-                                                     welcome_email_settings):
+def register_forgot_password_lifecycle_event_handler(
+        settings, notification_email_settings):
+
     """
     Register lifecycle event handler for forgot password plugin
     """
@@ -78,13 +79,13 @@ def register_forgot_password_lifecycle_event_handler(settings,
             download_template(settings.reset_error_html_url,
                               'reset_password_error.html')
 
-        if welcome_email_settings.text_url:
-            download_template(welcome_email_settings.text_url,
-                              'welcome_email.txt')
+        if notification_email_settings.text_url:
+            download_template(notification_email_settings.text_url,
+                              'notification_email.txt')
 
-        if welcome_email_settings.html_url:
-            download_template(welcome_email_settings.html_url,
-                              'welcome_email.html')
+        if notification_email_settings.html_url:
+            download_template(notification_email_settings.html_url,
+                              'notification_email.html')
 
 
 def register_forgot_password_op(settings, smtp_settings):
@@ -168,7 +169,7 @@ def register_forgot_password_op(settings, smtp_settings):
 
 
 def register_reset_password_op(settings, smtp_settings,
-                               welcome_email_settings):
+                               notification_email_settings):
     """
     Register lambda function handling reset password request
     """
@@ -206,11 +207,11 @@ def register_reset_password_op(settings, smtp_settings,
 
             user_record = user_util.get_user_record(c, user.id)
 
-            # send welcome email
-            if welcome_email_settings.enable:
-                send_welcome_email(user, user_record, settings,
-                                   smtp_settings,
-                                   welcome_email_settings)
+            # send notification email
+            if notification_email_settings.enable:
+                send_notification_email(user, user_record, settings,
+                                        smtp_settings,
+                                        notification_email_settings)
 
             return {'status': 'OK'}
 
@@ -238,11 +239,11 @@ def reset_password_error_response():
     return skygear.Response(body, status=400, content_type='text/html')
 
 
-def send_welcome_email(user, user_record, settings, smtp_settings,
-                       welcome_email_settings):
+def send_notification_email(user, user_record, settings, smtp_settings,
+                            notification_email_settings):
     if not smtp_settings.host:
         logger.error('Mail server is not configured. '
-                     'Ignore sending welcome email')
+                     'Ignore sending notification email')
     else:
         url_prefix = settings.url_prefix
         if url_prefix.endswith('/'):
@@ -257,12 +258,12 @@ def send_welcome_email(user, user_record, settings, smtp_settings,
             'user_record': user_record,
         }
 
-        text = template.welcome_email_text(**email_params)
-        html = template.welcome_email_html(**email_params)
+        text = template.notification_email_text(**email_params)
+        html = template.notification_email_html(**email_params)
 
-        sender = welcome_email_settings.sender
-        reply_to = welcome_email_settings.reply_to
-        subject = welcome_email_settings.subject
+        sender = notification_email_settings.sender
+        reply_to = notification_email_settings.reply_to
+        subject = notification_email_settings.subject
 
         try:
             mailer = email_util.Mailer(
@@ -274,10 +275,10 @@ def send_welcome_email(user, user_record, settings, smtp_settings,
             )
             mailer.send_mail(sender, user.email, subject, text,
                              html=html, reply_to=reply_to)
-            logger.info('Successfully sent welcome email '
+            logger.info('Successfully sent notification email '
                         'to user.')
         except Exception as ex:
-            logger.error('An error occurred sending welcome '
+            logger.error('An error occurred sending notification '
                          'email to user: {}'.format(str(ex)))
 
 
@@ -337,7 +338,7 @@ def validate_reset_password_request_password_parameters(request):
 
 
 def register_reset_password_handler(settings, smtp_settings,
-                                    welcome_email_settings):
+                                    notification_email_settings):
     """
     Register HTTP handler for reset password request
     """
@@ -347,17 +348,17 @@ def register_reset_password_handler(settings, smtp_settings,
         A handler for reset password requests.
         """
         if settings.error_redirect:
-            url_error_response = reset_password_error_response = \
+            response_url_error = response_reset_password_error = \
                 lambda **kwargs: redirect_response(settings.error_redirect)
         else:
-            url_error_response = reset_password_error_response
-            reset_password_error_response = reset_password_response_form
+            response_url_error = reset_password_error_response
+            response_reset_password_error = reset_password_response_form
 
         with conn() as c:
             try:
                 params = validate_reset_password_request_parameters(c, request)
             except IllegalArgumentError:
-                return url_error_response()
+                return response_url_error()
 
         template_params = {
             'user': params.user,
@@ -375,19 +376,19 @@ def register_reset_password_handler(settings, smtp_settings,
             password = \
                 validate_reset_password_request_password_parameters(request)
         except IllegalArgumentError as ex:
-            return reset_password_error_response(error=str(ex),
+            return response_reset_password_error(error=str(ex),
                                                  **template_params)
 
         with conn() as c:
             user_util.set_new_password(c, params.user.id, password)
             logger.info('Successfully reset password for user.')
 
-            # send welcome email
-            if welcome_email_settings.enable:
-                send_welcome_email(params.user, params.user_record,
-                                   settings,
-                                   smtp_settings,
-                                   welcome_email_settings)
+            # send notification email
+            if notification_email_settings.enable:
+                send_notification_email(params.user, params.user_record,
+                                        settings,
+                                        smtp_settings,
+                                        notification_email_settings)
 
             if settings.success_redirect:
                 return redirect_response(settings.success_redirect)
@@ -396,10 +397,11 @@ def register_reset_password_handler(settings, smtp_settings,
             return skygear.Response(body, content_type='text/html')
 
 
-def register_handlers(settings, smtp_settings, welcome_email_settings):
-    register_forgot_password_lifecycle_event_handler(settings,
-                                                     welcome_email_settings)
+def register_handlers(settings, smtp_settings, notification_email_settings):
+    register_forgot_password_lifecycle_event_handler(
+        settings, notification_email_settings)
     register_forgot_password_op(settings, smtp_settings)
-    register_reset_password_op(settings, smtp_settings, welcome_email_settings)
+    register_reset_password_op(settings, smtp_settings,
+                               notification_email_settings)
     register_reset_password_handler(settings, smtp_settings,
-                                    welcome_email_settings)
+                                    notification_email_settings)
