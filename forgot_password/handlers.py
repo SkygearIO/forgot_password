@@ -24,8 +24,8 @@ from skygear.error import SkygearException
 from skygear.utils.db import conn
 
 from . import template
-from .util import email as emailutil
-from .util import user as userutil
+from .util import email as email_util
+from .util import user as user_util
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +108,7 @@ def register_forgot_password_op(settings, smtp_settings):
                                    skyerror.ResourceNotFound)
 
         with conn() as c:
-            user = userutil.get_user_from_email(c, email)
+            user = user_util.get_user_from_email(c, email)
             if not user:
                 if not settings.secure_match:
                     return {'status': 'OK'}
@@ -118,10 +118,10 @@ def register_forgot_password_op(settings, smtp_settings):
                 raise SkygearException('email is not found',
                                        skyerror.ResourceNotFound)
 
-            user_record = userutil.get_user_record(c, user.id)
+            user_record = user_util.get_user_record(c, user.id)
             expire_at = round(datetime.utcnow().timestamp()) + \
                 settings.reset_url_lifetime
-            code = userutil.generate_code(user, expire_at)
+            code = user_util.generate_code(user, expire_at)
 
             url_prefix = settings.url_prefix
             if url_prefix.endswith('/'):
@@ -149,7 +149,7 @@ def register_forgot_password_op(settings, smtp_settings):
             subject = settings.subject
 
             try:
-                mailer = emailutil.Mailer(
+                mailer = email_util.Mailer(
                     smtp_host=smtp_settings.host,
                     smtp_port=smtp_settings.port,
                     smtp_mode=smtp_settings.mode,
@@ -189,10 +189,10 @@ def register_reset_password_op(settings, smtp_settings,
                                    skyerror.ResourceNotFound)
 
         with conn() as c:
-            user = userutil.get_user_and_validate_code(c,
-                                                       user_id,
-                                                       code,
-                                                       expire_at)
+            user = user_util.get_user_and_validate_code(c,
+                                                        user_id,
+                                                        code,
+                                                        expire_at)
             if not user:
                 raise SkygearException('user_id is not found or code invalid',
                                        skyerror.ResourceNotFound)
@@ -201,10 +201,10 @@ def register_reset_password_op(settings, smtp_settings,
                 raise SkygearException('email is not found',
                                        skyerror.ResourceNotFound)
 
-            userutil.set_new_password(c, user.id, new_password)
+            user_util.set_new_password(c, user.id, new_password)
             logger.info('Successfully reset password for user.')
 
-            user_record = userutil.get_user_record(c, user.id)
+            user_record = user_util.get_user_record(c, user.id)
 
             # send welcome email
             if welcome_email_settings.enable:
@@ -265,7 +265,7 @@ def send_welcome_email(user, user_record, settings, smtp_settings,
         subject = welcome_email_settings.subject
 
         try:
-            mailer = emailutil.Mailer(
+            mailer = email_util.Mailer(
                 smtp_host=smtp_settings.host,
                 smtp_port=smtp_settings.port,
                 smtp_mode=smtp_settings.mode,
@@ -303,8 +303,8 @@ def validate_reset_password_request_parameters(db_connection, request):
     except ValueError:
         raise IllegalArgumentError('expire_at is malformed')
 
-    user = userutil.get_user_and_validate_code(db_connection, user_id,
-                                               code, expire_at)
+    user = user_util.get_user_and_validate_code(db_connection, user_id,
+                                                code, expire_at)
 
     if not user:
         raise IllegalArgumentError('cannot find the specified user')
@@ -312,7 +312,7 @@ def validate_reset_password_request_parameters(db_connection, request):
     if not user.email:
         raise IllegalArgumentError('the specified user does not have an email')
 
-    user_record = userutil.get_user_record(db_connection, user.id)
+    user_record = user_util.get_user_record(db_connection, user.id)
 
     return ResetPasswordRequestParams(code=code, user_id=user_id,
                                       expire_at=expire_at,
@@ -379,7 +379,7 @@ def register_reset_password_handler(settings, smtp_settings,
                                                  **template_params)
 
         with conn() as c:
-            userutil.set_new_password(c, params.user.id, password)
+            user_util.set_new_password(c, params.user.id, password)
             logger.info('Successfully reset password for user.')
 
             # send welcome email
