@@ -104,19 +104,19 @@ def register_forgot_password_op(settings, smtp_settings):
             )
 
         if email is None:
-            raise SkygearException('email is not found',
-                                   skyerror.ResourceNotFound)
+            raise SkygearException('email must be set',
+                                   skyerror.InvalidArgument)
 
         with conn() as c:
             user = user_util.get_user_from_email(c, email)
             if not user:
                 if not settings.secure_match:
                     return {'status': 'OK'}
-                raise SkygearException('user_id is not found',
-                                       skyerror.ResourceNotFound)
+                raise SkygearException('user_id must be set',
+                                       skyerror.InvalidArgument)
             if not user.email:
-                raise SkygearException('email is not found',
-                                       skyerror.ResourceNotFound)
+                raise SkygearException('email must be set',
+                                       skyerror.InvalidArgument)
 
             user_record = user_util.get_user_record(c, user.id)
             expire_at = round(datetime.utcnow().timestamp()) + \
@@ -178,15 +178,15 @@ def register_reset_password_op(settings, smtp_settings,
         Lambda function to handle reset password request.
         """
         if not user_id:
-            raise SkygearException('user_id is not found',
-                                   skyerror.ResourceNotFound)
+            raise SkygearException('user_id must be set',
+                                   skyerror.InvalidArgument)
         if not code:
-            raise SkygearException('code is not found',
-                                   skyerror.ResourceNotFound)
+            raise SkygearException('code must be set',
+                                   skyerror.InvalidArgument)
 
         if not expire_at:
-            raise SkygearException('expire_at is not found',
-                                   skyerror.ResourceNotFound)
+            raise SkygearException('expire_at must be set',
+                                   skyerror.InvalidArgument)
 
         with conn() as c:
             user = user_util.get_user_and_validate_code(c,
@@ -198,7 +198,7 @@ def register_reset_password_op(settings, smtp_settings,
                                        skyerror.ResourceNotFound)
 
             if not user.email:
-                raise SkygearException('email is not found',
+                raise SkygearException('email must be set',
                                        skyerror.ResourceNotFound)
 
             user_util.set_new_password(c, user.id, new_password)
@@ -290,13 +290,13 @@ def validate_reset_password_request_parameters(db_connection, request):
     expire_at_arg = request.values.get('expire_at')
 
     if not code:
-        raise IllegalArgumentError('code is not found')
+        raise IllegalArgumentError('code must be set')
 
     if not user_id:
-        raise IllegalArgumentError('user_id is not found')
+        raise IllegalArgumentError('user_id must be set')
 
     if not expire_at_arg:
-        raise IllegalArgumentError('expire_at is not found')
+        raise IllegalArgumentError('expire_at must be set')
 
     try:
         expire_at = int(expire_at_arg)
