@@ -16,7 +16,7 @@ import os
 import tempfile
 
 from pathlib import Path
-from urllib.error import HTTPError
+from urllib.error import URLError
 from urllib.request import urlretrieve
 
 import jinja2
@@ -35,6 +35,30 @@ class TemplateNotFound(Exception):
 
     def __str__(self):
         return 'Cannot find template: {}'.format(self.template_name)
+
+
+class TemplateDownloadError(Exception):
+    def __init__(self, template_name, url, reason):
+        self._template_name = template_name
+        self._url = url
+        self._reason = reason
+
+    @property
+    def template_name(self):
+        return self._template_name
+
+    @property
+    def url(self):
+        return self._url
+
+    @property
+    def reason(self):
+        return self._reason
+
+    def __str__(self):
+        return 'Cannot download {} from {}: {}'.format(self.template_name,
+                                                       self.url,
+                                                       self.reason)
 
 
 class Template:
@@ -87,9 +111,12 @@ class Template:
             logger.info('Downloading {} from {}'.format(self.file_name,
                                                         self.download_url))
             urlretrieve(self.download_url, str(file_path))
-        except HTTPError as ex:
+        except URLError as ex:
             logger.error('Failed to download {} from {}: {}'.format(
                 self.file_name, self.download_url, ex.reason))
+            raise TemplateDownloadError(self.file_name,
+                                        self.download_url,
+                                        ex.reason)
 
     def get(self):
         """
