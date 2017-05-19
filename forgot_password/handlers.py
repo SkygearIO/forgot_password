@@ -263,7 +263,7 @@ def send_notification_email(template_provider,
 
 def validate_reset_password_request_parameters(db_connection, request):
     """
-    Validation of reset password request parameters
+    Validates reset password request parameters.
     """
     code = request.values.get('code')
     user_id = request.values.get('user_id')
@@ -301,7 +301,7 @@ def validate_reset_password_request_parameters(db_connection, request):
 
 def validate_reset_password_request_password_params(request):
     """
-    Validation of reset password request password parameters
+    Validate of reset password request password parameters.
     """
     password = request.values.get('password')
     password_confirm = request.values.get('confirm')

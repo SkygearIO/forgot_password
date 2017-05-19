@@ -71,7 +71,8 @@ will be sent to clients. Text template will serve as a fallback for email
 clients not support html email.
 
 You can also specify the corresponding environment variable indicating the url
-of the template. The plugin will download the template before serving requests.
+of the template. The plugin will download the template before sending the
+email.
 
 For example, if you want to change how the forgot password email looks, create
 a text file and save it to
