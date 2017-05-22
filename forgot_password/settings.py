@@ -39,6 +39,21 @@ def get_settings_parser():
         resolve=False,
         default='Reset password instructions'
     )
+    parser.add_setting('reply_to', resolve=False, required=False)
+    parser.add_setting(
+        'reset_url_lifetime',
+        atype=int,
+        resolve=False,
+        required=False,
+        default=43200
+    )
+    parser.add_setting('success_redirect', resolve=False, required=False)
+    parser.add_setting('error_redirect', resolve=False, required=False)
+    parser.add_setting('email_text_url', resolve=False, required=False)
+    parser.add_setting('email_html_url', resolve=False, required=False)
+    parser.add_setting('reset_html_url', resolve=False, required=False)
+    parser.add_setting('reset_success_html_url', resolve=False, required=False)
+    parser.add_setting('reset_error_html_url', resolve=False, required=False)
 
     return parser
 

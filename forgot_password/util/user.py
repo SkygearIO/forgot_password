@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import hashlib
+from datetime import datetime
 
 import bcrypt
 from skygear.options import options as skyoptions
@@ -19,20 +20,24 @@ from skygear.utils.db import get_table, has_table
 from sqlalchemy.sql import func, select
 
 
-def generate_code(user):
+def generate_code(user, expire_at):
     """
     Generate a code that the user has to enter in order to reset
     password. The code is generated from user information. The code
     is invalidated when the password or last login date changes.
     """
+
+    encoding = 'utf-8'
+
     m = hashlib.sha1()
-    m.update(skyoptions.masterkey.encode('utf-8'))
-    m.update(user.id.encode('utf-8'))
-    m.update(user.email.encode('utf-8'))
+    m.update(skyoptions.masterkey.encode(encoding))
+    m.update(user.id.encode(encoding))
+    m.update(user.email.encode(encoding))
+    m.update(str(expire_at).encode(encoding))
     if user.password:
-        m.update(user.password.encode('utf-8'))
+        m.update(user.password.encode(encoding))
     if user.last_login_at:
-        m.update(str(user.last_login_at).encode('utf-8'))
+        m.update(str(user.last_login_at).encode(encoding))
 
     return m.hexdigest()[:8]
 
@@ -82,7 +87,7 @@ def get_user_from_email(c, email):
     return result.fetchone()
 
 
-def get_user_and_validate_code(c, user_id, code):
+def get_user_and_validate_code(c, user_id, code, expire_at):
     """
     Get user information from the database with the specified user ID and
     verification code.
@@ -90,8 +95,11 @@ def get_user_and_validate_code(c, user_id, code):
     if not user_id or not code:
         return None
 
+    if datetime.utcnow().timestamp() > expire_at:
+        return None
+
     user = get_user(c, user_id)
-    if code != generate_code(user):
+    if code != generate_code(user, expire_at):
         return None
     return user
 
