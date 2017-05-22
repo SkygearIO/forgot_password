@@ -1,5 +1,0 @@
-Dear {{ user.email }},
-
-Your password is reset successfully.
-
-Thanks.

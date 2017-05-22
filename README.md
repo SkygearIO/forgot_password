@@ -45,21 +45,6 @@ SMTP settings are required for the plugin to send outgoing email.
 * `SMTP_LOGIN` - username for authentication (optional)
 * `SMTP_PASSWORD` - password for authentication (optional)
 
-### Notification email settings
-
-Notification email settings defines the behaviour of sending notification email
-to the user when his / her password is reset successfully.
-
-* `FORGOT_PASSWORD_NOTIFICATION_EMAIL_ENABLE` - the option indicating whether
-  the plugin will send notification email to user after password reset. The
-  default value is "NO".
-* `FORGOT_PASSWORD_NOTIFICATION_EMAIL_SENDER` - the sender of the notification
-  email
-* `FORGOT_PASSWORD_NOTIFICATION_EMAIL_SUBJECT` - the subject of the
-  notification email
-* `FORGOT_PASSWORD_NOTIFICATION_EMAIL_REPLY_TO` - the "Reply-to" option of the
-  email
-
 ## Templates
 
 This plugin provides basic HTML and email templates for handling forgot
@@ -101,16 +86,6 @@ Here are a list of templates you can override:
 * `templates/forgot_password/reset_password_success.html` - HTML page
   to show when the user has reset the password successfully. The corresponding
   environment variable is `FORGOT_PASSWORD_RESET_SUCCESS_HTML_URL`.
-
-* `templates/forgot_password/notification_email.txt` - text template for the
-  notification email sent when password is reset successfully. The
-  corresponding environment variable is
-  `FORGOT_PASSWORD_NOTIFICATION_EMAIL_TEXT_URL`.
-
-* `templates/forgot_password/notification_email.html` - html template for the
-  notification email sent when password is reset successfully. The
-  corresponding environment variable is
-  `FORGOT_PASSWORD_NOTIFICATION_EMAIL_HTML_URL`.
 
 You can reference variable for generating HTML/email with dynamic values. Here
 is an incomplete list of variables:

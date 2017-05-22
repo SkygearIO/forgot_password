@@ -68,30 +68,3 @@ def get_smtp_settings_parser():
     parser.add_setting('password', resolve=False, default='')
 
     return parser
-
-
-def get_notification_email_settings_parser():
-    parser = SettingsParser('FORGOT_PASSWORD_NOTIFICATION_EMAIL')
-
-    parser.add_setting(
-        'enable',
-        atype=bool,
-        resolve=False,
-        required=False,
-        default=False
-    )
-    parser.add_setting(
-        'sender',
-        resolve=False,
-        default='no-reply@skygeario.com'
-    )
-    parser.add_setting(
-        'subject',
-        resolve=False,
-        default='Password reset successfully'
-    )
-    parser.add_setting('reply_to', resolve=False, required=False)
-    parser.add_setting('text_url', resolve=False, required=False)
-    parser.add_setting('html_url', resolve=False, required=False)
-
-    return parser
