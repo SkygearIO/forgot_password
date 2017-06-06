@@ -45,6 +45,21 @@ SMTP settings are required for the plugin to send outgoing email.
 * `SMTP_LOGIN` - username for authentication (optional)
 * `SMTP_PASSWORD` - password for authentication (optional)
 
+### Welcome email settings
+
+Welcome email settings defines the behaviour of sending welcome email
+to the newly signed up users.
+
+* `FORGOT_PASSWORD_WELCOME_EMAIL_ENABLE` - the option indicating whether
+  the plugin will send welcome email to user after sign up. The
+  default value is "NO".
+* `FORGOT_PASSWORD_WELCOME_EMAIL_SENDER` - the sender of the welcome
+  email
+* `FORGOT_PASSWORD_WELCOME_EMAIL_SUBJECT` - the subject of the
+  welcome email
+* `FORGOT_PASSWORD_WELCOME_EMAIL_REPLY_TO` - the "Reply-to" option of the
+  welcome email
+
 ## Templates
 
 This plugin provides basic HTML and email templates for handling forgot
@@ -86,6 +101,16 @@ Here are a list of templates you can override:
 * `templates/forgot_password/reset_password_success.html` - HTML page
   to show when the user has reset the password successfully. The corresponding
   environment variable is `FORGOT_PASSWORD_RESET_SUCCESS_HTML_URL`.
+
+* `templates/forgot_password/welcome_email.txt` - text template for the
+  welcome email sent when the user is signed up successfully. The
+  corresponding environment variable is
+  `FORGOT_PASSWORD_WELCOME_EMAIL_TEXT_URL`.
+
+* `templates/forgot_password/welcome_email.html` - html template for the
+  welcome email sent when the user is signed up successfully. The
+  corresponding environment variable is
+  `FORGOT_PASSWORD_WELCOME_EMAIL_HTML_URL`.
 
 You can reference variable for generating HTML/email with dynamic values. Here
 is an incomplete list of variables:
