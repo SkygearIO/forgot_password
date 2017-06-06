@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 from .template import TemplateProvider
 from .forgot_password import add_templates as add_forgot_password_templates
 from .forgot_password import register_op as register_forgot_password_op
@@ -19,16 +20,21 @@ from .reset_password import add_templates as add_reset_password_templates
 from .reset_password import register_op as register_reset_password_op
 from .reset_password import register_handlers \
     as register_reset_password_handlers
+from .welcome_email import add_templates as add_welcome_email_templates
+from .welcome_email import register_hooks as register_welcome_email_hooks
 
 
 def register_handlers(**kwargs):
     settings = kwargs['settings']
+    welcome_email_settings = kwargs['welcome_email_settings']
 
     template_provider = TemplateProvider()
     add_forgot_password_templates(template_provider, settings)
     add_reset_password_templates(template_provider, settings)
+    add_welcome_email_templates(template_provider, welcome_email_settings)
 
     register_forgot_password_op(template_provider=template_provider, **kwargs)
     register_reset_password_op(template_provider=template_provider, **kwargs)
     register_reset_password_handlers(template_provider=template_provider,
                                      **kwargs)
+    register_welcome_email_hooks(template_provider=template_provider, **kwargs)

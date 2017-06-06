@@ -18,14 +18,18 @@ from skygear.settings import add_parser as add_setting_parser
 from .settings import \
     get_settings_parser, \
     get_smtp_settings_parser, \
+    get_welcome_email_settings_parser
 from .handlers import register_handlers
 
 
 def includeme(settings):
     register_handlers(
         settings=settings.forgot_password,
-        smtp_settings=settings.forgot_password_smtp)
+        smtp_settings=settings.forgot_password_smtp,
+        welcome_email_settings=settings.forgot_password_welcome_email)
 
 
 add_setting_parser('forgot_password', get_settings_parser())
 add_setting_parser('forgot_password_smtp', get_smtp_settings_parser())
+add_setting_parser('forgot_password_welcome_email',
+                   get_welcome_email_settings_parser())
