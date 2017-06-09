@@ -14,13 +14,11 @@
 import logging
 import os
 import tempfile
-
 from pathlib import Path
 from urllib.error import URLError
 from urllib.request import urlretrieve
 
 import jinja2
-
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +71,7 @@ class Template:
             jinja2.FileSystemLoader(str(cls.get_download_dir_path())),
             jinja2.FileSystemLoader(
                 os.path.abspath("templates/forgot_password")),
-            jinja2.PackageLoader(__name__, 'templates'),
+            jinja2.PackageLoader('forgot_password', 'templates'),
         ]))
 
     def __init__(self, name, file_name, download_url=None, required=True):
