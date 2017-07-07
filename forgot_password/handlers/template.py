@@ -35,7 +35,7 @@ class TemplateNotFound(Exception):
         return 'Cannot find template: {}'.format(self.template_name)
 
 
-class TemplateDownloadError(Exception):
+class FileTemplateDownloadError(Exception):
     def __init__(self, template_name, url, reason):
         self._template_name = template_name
         self._url = url
@@ -59,7 +59,30 @@ class TemplateDownloadError(Exception):
                                                        self.reason)
 
 
-class Template:
+class BaseTemplate:
+    def __init__(self, name):
+        self._name = name
+
+    @property
+    def name(self):
+        return self._name
+
+    def get(self):
+        """
+        Get the template content.
+        This method is expected to be overridden by subclasses.
+        """
+        return None
+
+    def render(self, **kwargs):
+        """
+        Render template content.
+        """
+        template_content = self.get()
+        return template_content.render(**kwargs) if template_content else None
+
+
+class FileTemplate(BaseTemplate):
     @classmethod
     def get_download_dir_path(cls):
         return Path(tempfile.gettempdir()).joinpath('forgot_password',
@@ -75,14 +98,10 @@ class Template:
         ]))
 
     def __init__(self, name, file_name, download_url=None, required=True):
-        self._name = name
+        super(FileTemplate, self).__init__(name)
         self._file_name = file_name
         self._download_url = download_url
         self._required = required
-
-    @property
-    def name(self):
-        return self._name
 
     @property
     def file_name(self):
@@ -112,9 +131,9 @@ class Template:
         except URLError as ex:
             logger.error('Failed to download {} from {}: {}'.format(
                 self.file_name, self.download_url, ex.reason))
-            raise TemplateDownloadError(self.file_name,
-                                        self.download_url,
-                                        ex.reason)
+            raise FileTemplateDownloadError(self.file_name,
+                                            self.download_url,
+                                            ex.reason)
 
     def get(self):
         """
@@ -133,12 +152,27 @@ class Template:
                 raise TemplateNotFound(self.name)
             return None
 
-    def render(self, **kwargs):
+
+class StringTemplate(BaseTemplate):
+    @classmethod
+    def get_jinja_env(cls):
+        return jinja2.Environment(loader=jinja2.BaseLoader())
+
+    def __init__(self, name, content):
+        super(StringTemplate, self).__init__(name)
+        self._content = content
+
+    @property
+    def content(self):
+        return self._content
+
+    def get(self):
         """
-        Render template content.
+        Get the template content.
         """
-        template_content = self.get()
-        return template_content.render(**kwargs) if template_content else None
+        if not self.content:
+            return None
+        return self.get_jinja_env().from_string(self.content)
 
 
 class TemplateProvider:

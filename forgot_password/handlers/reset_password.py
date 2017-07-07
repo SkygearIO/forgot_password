@@ -21,7 +21,7 @@ from skygear import error as skyerror
 from skygear.error import SkygearException
 from skygear.utils.db import conn
 
-from .template import Template
+from .template import FileTemplate
 from .util import user as user_util
 
 logger = logging.getLogger(__name__)
@@ -125,14 +125,14 @@ def response_error(template_provider, settings, **kwargs):
 
 def add_templates(template_provider, settings):
     template_provider.add_template(
-        Template('reset_password_form', 'reset_password.html',
-                 download_url=settings.reset_html_url))
+        FileTemplate('reset_password_form', 'reset_password.html',
+                     download_url=settings.reset_html_url))
     template_provider.add_template(
-        Template('reset_password_success', 'reset_password_success.html',
-                 download_url=settings.reset_success_html_url))
+        FileTemplate('reset_password_success', 'reset_password_success.html',
+                     download_url=settings.reset_success_html_url))
     template_provider.add_template(
-        Template('reset_password_error', 'reset_password_error.html',
-                 download_url=settings.reset_error_html_url))
+        FileTemplate('reset_password_error', 'reset_password_error.html',
+                     download_url=settings.reset_error_html_url))
     return template_provider
 
 

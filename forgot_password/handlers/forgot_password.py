@@ -21,7 +21,7 @@ from skygear import error as skyerror
 from skygear.error import SkygearException
 from skygear.utils.db import conn
 
-from .template import Template
+from .template import FileTemplate, StringTemplate
 from .util import email as email_util
 from .util import user as user_util
 
@@ -30,12 +30,12 @@ logger = logging.getLogger(__name__)
 
 def add_templates(template_provider, settings):
     template_provider.add_template(
-        Template('reset_email_text', 'forgot_password_email.txt',
-                 download_url=settings.email_text_url))
+        FileTemplate('reset_email_text', 'forgot_password_email.txt',
+                     download_url=settings.email_text_url))
     template_provider.add_template(
-        Template('reset_email_html', 'forgot_password_email.html',
-                 download_url=settings.email_html_url,
-                 required=False))
+        FileTemplate('reset_email_html', 'forgot_password_email.html',
+                     download_url=settings.email_html_url,
+                     required=False))
     return template_provider
 
 
