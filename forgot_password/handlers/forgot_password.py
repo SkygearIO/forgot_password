@@ -42,21 +42,31 @@ def add_templates(template_provider, settings):
     return template_provider
 
 
-def register_op(**kwargs):
-    """
-    Register lambda function handling forgot password request
-    """
-    template_provider = kwargs['template_provider']
-    settings = kwargs['settings']
-    smtp_settings = kwargs['smtp_settings']
+class TemplateMailSender:
+    def __init__(self, template_provider, smtp_settings):
+        self._template_provider = template_provider
+        self._smtp_settings = smtp_settings
 
-    def send_mail(sender,
-                  email,
-                  subject,
-                  text_template_string=None,
-                  html_template_string=None,
-                  reply_to=None,
-                  template_params={}):
+    @property
+    def template_provider(self):
+        return self._template_provider
+
+    @property
+    def smtp_settings(self):
+        return self._smtp_settings
+
+    def get_template(self, name):
+        return self.template_provider.get_template(name)
+
+    def send(self, sender, email, subject,
+             text_template_string=None,
+             html_template_string=None,
+             reply_to=None,
+             template_params={}):
+
+        if self.smtp_settings.host is None:
+            logger.error('Mail server is not configured. Configure SMTP_HOST.')
+            raise Exception('mail server is not configured')
 
         text_template = None
         html_template = None
@@ -66,39 +76,43 @@ def register_op(**kwargs):
             html_template = StringTemplate('reset_email_html',
                                            html_template_string)
         else:
-            text_template = template_provider.get_template('reset_email_text')
-            html_template = template_provider.get_template('reset_email_html')
+            text_template = self.get_template('reset_email_text')
+            html_template = self.get_template('reset_email_html')
 
-        try:
-            mailer = email_util.Mailer(
-                smtp_host=smtp_settings.host,
-                smtp_port=smtp_settings.port,
-                smtp_mode=smtp_settings.mode,
-                smtp_login=smtp_settings.login,
-                smtp_password=smtp_settings.password,
-            )
-            mailer.send_mail(sender,
-                             email,
-                             subject,
-                             text_template.render(**template_params),
-                             html=html_template.render(**template_params),
-                             reply_to=reply_to)
-        except Exception as ex:
-            logger.exception('An error occurred sending reset password'
-                             ' email to user.')
-            raise SkygearException(str(ex), skyerror.UnexpectedError)
+        mailer = email_util.Mailer(
+            smtp_host=self.smtp_settings.host,
+            smtp_port=self.smtp_settings.port,
+            smtp_mode=self.smtp_settings.mode,
+            smtp_login=self.smtp_settings.login,
+            smtp_password=self.smtp_settings.password,
+        )
+        mailer.send_mail(sender,
+                         email,
+                         subject,
+                         text_template.render(**template_params),
+                         html=html_template.render(**template_params),
+                         reply_to=reply_to)
 
+
+def register_op(**kwargs):
+    """
+    Register lambda function handling forgot password request
+    """
+    template_provider = kwargs['template_provider']
+    settings = kwargs['settings']
+    smtp_settings = kwargs['smtp_settings']
+    mail_sender = TemplateMailSender(template_provider,
+                                     smtp_settings)
+    register_forgot_password_op(mail_sender, settings)
+    register_test_forgot_password_op(mail_sender, settings)
+
+
+def register_forgot_password_op(mail_sender, settings):
     @skygear.op('user:forgot-password')
     def forgot_password(email):
         """
         Lambda function to handle forgot password request.
         """
-        if smtp_settings.host is None:
-            logger.error('Mail server is not configured. Configure SMTP_HOST.')
-            raise SkygearException(
-                'mail server is not configured',
-                skyerror.UnexpectedError
-            )
 
         if email is None:
             raise SkygearException('email must be set',
@@ -138,14 +152,21 @@ def register_op(**kwargs):
                 'user_record': user_record,
             }
 
-            send_mail(settings.sender,
-                      user.email,
-                      settings.subject,
-                      reply_to=settings.reply_to,
-                      template_params=template_params)
+            try:
+                mail_sender.send(settings.sender,
+                                 user.email,
+                                 settings.subject,
+                                 reply_to=settings.reply_to,
+                                 template_params=template_params)
+            except Exception as ex:
+                logger.exception('An error occurred sending reset password'
+                                 ' email to user.')
+                raise SkygearException(str(ex), skyerror.UnexpectedError)
 
             return {'status': 'OK'}
 
+
+def register_test_forgot_password_op(mail_sender, settings):
     @skygear.op('user:forgot-password:test', key_required=True)
     def test_forgot_password_email(email,
                                    text_template=None,
@@ -179,12 +200,17 @@ def register_op(**kwargs):
             'user_id': dummy_user.id
         }
 
-        send_mail(settings.sender,
-                  email,
-                  settings.subject,
-                  reply_to=settings.reply_to,
-                  text_template_string=text_template,
-                  html_template_string=html_template,
-                  template_params=template_params)
+        try:
+            mail_sender.send(settings.sender,
+                             email,
+                             settings.subject,
+                             reply_to=settings.reply_to,
+                             text_template_string=text_template,
+                             html_template_string=html_template,
+                             template_params=template_params)
+        except Exception as ex:
+            logger.exception('An error occurred sending test reset password'
+                             ' email to user.')
+            raise SkygearException(str(ex), skyerror.UnexpectedError)
 
         return {'status': 'OK'}
