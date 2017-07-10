@@ -18,7 +18,7 @@ import time
 
 import skygear
 
-from .template import Template
+from .template import FileTemplate
 from .util import email as email_util
 from .util import user as user_util
 
@@ -79,12 +79,12 @@ def send_email(template_provider,
 
 def add_templates(template_provider, settings):
     template_provider.add_template(
-        Template('welcome_email_text', 'welcome_email.txt',
-                 download_url=settings.text_url))
+        FileTemplate('welcome_email_text', 'welcome_email.txt',
+                     download_url=settings.text_url))
     template_provider.add_template(
-        Template('welcome_email_html', 'welcome_email.html',
-                 download_url=settings.html_url,
-                 required=False))
+        FileTemplate('welcome_email_html', 'welcome_email.html',
+                     download_url=settings.html_url,
+                     required=False))
     return template_provider
 
 
