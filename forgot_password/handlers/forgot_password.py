@@ -24,7 +24,8 @@ from skygear.models import Record, RecordID
 from skygear.utils.context import current_context
 from skygear.utils.db import conn
 
-from .template import FileTemplate, StringTemplate
+from .template import FileTemplate
+from .template_mail import TemplateMailSender
 from .util import email as email_util
 from .util import user as user_util
 
@@ -42,58 +43,6 @@ def add_templates(template_provider, settings):
     return template_provider
 
 
-class TemplateMailSender:
-    def __init__(self, template_provider, smtp_settings):
-        self._template_provider = template_provider
-        self._smtp_settings = smtp_settings
-
-    @property
-    def template_provider(self):
-        return self._template_provider
-
-    @property
-    def smtp_settings(self):
-        return self._smtp_settings
-
-    def get_template(self, name):
-        return self.template_provider.get_template(name)
-
-    def send(self, sender, email, subject,
-             text_template_string=None,
-             html_template_string=None,
-             reply_to=None,
-             template_params={}):
-
-        if self.smtp_settings.host is None:
-            logger.error('Mail server is not configured. Configure SMTP_HOST.')
-            raise Exception('mail server is not configured')
-
-        text_template = None
-        html_template = None
-        if text_template_string:
-            text_template = StringTemplate('reset_email_text',
-                                           text_template_string)
-            html_template = StringTemplate('reset_email_html',
-                                           html_template_string)
-        else:
-            text_template = self.get_template('reset_email_text')
-            html_template = self.get_template('reset_email_html')
-
-        mailer = email_util.Mailer(
-            smtp_host=self.smtp_settings.host,
-            smtp_port=self.smtp_settings.port,
-            smtp_mode=self.smtp_settings.mode,
-            smtp_login=self.smtp_settings.login,
-            smtp_password=self.smtp_settings.password,
-        )
-        mailer.send_mail(sender,
-                         email,
-                         subject,
-                         text_template.render(**template_params),
-                         html=html_template.render(**template_params),
-                         reply_to=reply_to)
-
-
 def register_op(**kwargs):
     """
     Register lambda function handling forgot password request
@@ -102,7 +51,9 @@ def register_op(**kwargs):
     settings = kwargs['settings']
     smtp_settings = kwargs['smtp_settings']
     mail_sender = TemplateMailSender(template_provider,
-                                     smtp_settings)
+                                     smtp_settings,
+                                     'reset_email_text',
+                                     'reset_email_html')
     register_forgot_password_op(mail_sender, settings)
     register_test_forgot_password_op(mail_sender, settings)
 

@@ -21,7 +21,8 @@ from .reset_password import register_op as register_reset_password_op
 from .reset_password import register_handlers \
     as register_reset_password_handlers
 from .welcome_email import add_templates as add_welcome_email_templates
-from .welcome_email import register_hooks as register_welcome_email_hooks
+from .welcome_email import register_hooks_and_ops \
+    as register_welcome_email_hooks_and_ops
 
 
 def register_handlers(**kwargs):
@@ -37,4 +38,5 @@ def register_handlers(**kwargs):
     register_reset_password_op(template_provider=template_provider, **kwargs)
     register_reset_password_handlers(template_provider=template_provider,
                                      **kwargs)
-    register_welcome_email_hooks(template_provider=template_provider, **kwargs)
+    register_welcome_email_hooks_and_ops(template_provider=template_provider,
+                                         **kwargs)
