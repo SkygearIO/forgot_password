@@ -170,7 +170,8 @@ def register_test_forgot_password_op(mail_sender, settings):
     @skygear.op('user:forgot-password:test', key_required=True)
     def test_forgot_password_email(email,
                                    text_template=None,
-                                   html_template=None):
+                                   html_template=None,
+                                   subject=None):
         access_key_type = current_context().get('access_key_type')
         if not access_key_type or access_key_type != 'master':
             raise SkygearException(
@@ -200,10 +201,12 @@ def register_test_forgot_password_op(mail_sender, settings):
             'user_id': dummy_user.id
         }
 
+        email_subject = subject if subject else settings.subject
+
         try:
             mail_sender.send(settings.sender,
                              email,
-                             settings.subject,
+                             email_subject,
                              reply_to=settings.reply_to,
                              text_template_string=text_template,
                              html_template_string=html_template,
