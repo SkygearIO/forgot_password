@@ -18,13 +18,13 @@ import time
 from collections import namedtuple
 
 import skygear
+from skygear import error as skyerror
 from skygear.error import SkygearException
 from skygear.models import Record, RecordID
 from skygear.utils.context import current_context
 
 from .template import FileTemplate
 from .template_mail import TemplateMailSender
-
 from .util import user as user_util
 
 logger = logging.getLogger(__name__)
@@ -158,8 +158,8 @@ def register_ops(mail_sender, settings, welcome_email_settings):
                              html_template_string=html_template,
                              template_params=template_params)
         except Exception as ex:
-            logger.exception('An error occurred when sending welcome email '
-                             'to user {}: {}'.format(user.id, str(ex)))
+            logger.exception('An error occurred when '
+                             'testing welcome email: {}'.format(str(ex)))
             raise SkygearException(str(ex), skyerror.UnexpectedError)
 
         return {'status': 'OK'}
