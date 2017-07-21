@@ -15,66 +15,19 @@
 
 import logging
 import time
+from collections import namedtuple
 
 import skygear
+from skygear import error as skyerror
+from skygear.error import SkygearException
+from skygear.models import Record, RecordID
+from skygear.utils.context import current_context
 
 from .template import FileTemplate
-from .util import email as email_util
+from .template_mail import TemplateMailSender
 from .util import user as user_util
 
 logger = logging.getLogger(__name__)
-
-
-def send_email(template_provider,
-               user,
-               user_record,
-               settings,
-               smtp_settings,
-               welcome_email_settings):
-    if not smtp_settings.host:
-        logger.error('Mail server is not configured. '
-                     'Ignore sending notification email')
-        return
-
-    url_prefix = settings.url_prefix
-    if url_prefix.endswith('/'):
-        url_prefix = url_prefix[:-1]
-
-    email_params = {
-        'appname': settings.app_name,
-        'url_prefix': url_prefix,
-        'email': user.email,
-        'user_id': user.id,
-        'user': user,
-        'user_record': user_record,
-    }
-
-    text = template_provider.\
-        get_template('welcome_email_text').\
-        render(**email_params)
-    html = template_provider.\
-        get_template('welcome_email_html').\
-        render(**email_params)
-
-    sender = welcome_email_settings.sender
-    reply_to = welcome_email_settings.reply_to
-    subject = welcome_email_settings.subject
-
-    try:
-        mailer = email_util.Mailer(
-            smtp_host=smtp_settings.host,
-            smtp_port=smtp_settings.port,
-            smtp_mode=smtp_settings.mode,
-            smtp_login=smtp_settings.login,
-            smtp_password=smtp_settings.password,
-        )
-        mailer.send_mail(sender, user.email, subject, text,
-                         html=html, reply_to=reply_to)
-        logger.info('Successfully sent welcome email '
-                    'to user {}'.format(user.id))
-    except Exception as ex:
-        logger.error('An error occurred sending welcome '
-                     'email to user {}: {}'.format(user.id, str(ex)))
 
 
 def add_templates(template_provider, settings):
@@ -88,7 +41,7 @@ def add_templates(template_provider, settings):
     return template_provider
 
 
-def register_hooks(**kwargs):
+def register_hooks_and_ops(**kwargs):
     """
     Register DB hooks for sending welcome email
     """
@@ -97,11 +50,20 @@ def register_hooks(**kwargs):
     settings = kwargs['settings']
     smtp_settings = kwargs['smtp_settings']
     welcome_email_settings = kwargs['welcome_email_settings']
+    mail_sender = TemplateMailSender(template_provider,
+                                     smtp_settings,
+                                     'welcome_email_text',
+                                     'welcome_email_html')
 
     if not welcome_email_settings.enable:
         #  No need to register
         return
 
+    register_hooks(mail_sender, settings, welcome_email_settings)
+    register_ops(mail_sender, settings, welcome_email_settings)
+
+
+def register_hooks(mail_sender, settings, welcome_email_settings):
     @skygear.after_save('user', async=True)
     def user_after_save(record, original_record, db):
         if original_record:
@@ -123,5 +85,81 @@ def register_hooks(**kwargs):
             logger.info('User does not have an email')
             return
 
-        send_email(template_provider, user, record,
-                   settings, smtp_settings, welcome_email_settings)
+        url_prefix = settings.url_prefix
+        if url_prefix.endswith('/'):
+            url_prefix = url_prefix[:-1]
+
+        template_params = {
+            'appname': settings.app_name,
+            'url_prefix': url_prefix,
+            'email': user.email,
+            'user_id': user.id,
+            'user': user,
+            'user_record': record,
+        }
+
+        try:
+            mail_sender.send(welcome_email_settings.sender,
+                             user.email,
+                             welcome_email_settings.subject,
+                             reply_to=welcome_email_settings.reply_to,
+                             template_params=template_params)
+        except Exception as ex:
+            logger.exception('An error occurred when sending welcome email '
+                             'to user {}: {}'.format(user.id, str(ex)))
+
+
+def register_ops(mail_sender, settings, welcome_email_settings):
+    @skygear.op('user:welcome-email:test', key_required=True)
+    def test_welcome_email(email,
+                           text_template=None,
+                           html_template=None,
+                           subject=None,
+                           sender=None,
+                           reply_to=None):
+        access_key_type = current_context().get('access_key_type')
+        if not access_key_type or access_key_type != 'master':
+            raise SkygearException(
+                'master key is required',
+                skyerror.AccessKeyNotAccepted
+            )
+
+        url_prefix = settings.url_prefix
+        if url_prefix.endswith('/'):
+            url_prefix = url_prefix[:-1]
+
+        dummy_user = namedtuple('User', ['id', 'email'])(
+            'dummy-id',
+            'dummy-user@example.com')
+
+        dummy_record_id = RecordID('user', 'dummy-id')
+        dummy_record = Record(dummy_record_id, dummy_record_id.key, None)
+
+        template_params = {
+            'appname': settings.app_name,
+            'url_prefix': url_prefix,
+            'email': dummy_user.email,
+            'user_id': dummy_user.id,
+            'user': dummy_user,
+            'user_record': dummy_record,
+        }
+
+        email_sender = sender if sender else welcome_email_settings.sender
+        email_subject = subject if subject else welcome_email_settings.subject
+        email_reply_to = reply_to if reply_to \
+            else welcome_email_settings.reply_to
+
+        try:
+            mail_sender.send(email_sender,
+                             email,
+                             email_subject,
+                             reply_to=email_reply_to,
+                             text_template_string=text_template,
+                             html_template_string=html_template,
+                             template_params=template_params)
+        except Exception as ex:
+            logger.exception('An error occurred when '
+                             'testing welcome email: {}'.format(str(ex)))
+            raise SkygearException(str(ex), skyerror.UnexpectedError)
+
+        return {'status': 'OK'}
