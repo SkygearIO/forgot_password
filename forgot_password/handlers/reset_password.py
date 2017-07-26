@@ -15,6 +15,7 @@
 
 import logging
 from collections import namedtuple
+from urllib.parse import ParseResult, parse_qsl, urlencode, urlparse
 
 import skygear
 from skygear import error as skyerror
@@ -41,6 +42,23 @@ def redirect_response(url):
     A shorthand for returning a http redirect response.
     """
     return skygear.Response(status=302, headers=[('Location', url)])
+
+
+def redirect_error_response(url, error):
+    """
+    A shorthand for returning a http redirect response for errors.
+    """
+    parsed_url = urlparse(url)
+    query_list = parse_qsl(parsed_url.query)
+    query_list.append(('error', error))
+    injected_query = urlencode(query_list)
+    new_url = ParseResult(parsed_url.scheme,
+                          parsed_url.netloc,
+                          parsed_url.path,
+                          parsed_url.params,
+                          injected_query,
+                          parsed_url.fragment)
+    return redirect_response(new_url.geturl())
 
 
 def response_form(template_provider, **kwargs):
@@ -109,17 +127,19 @@ def validate_request_password_params(request):
 
 
 def response_url_error(template_provider, settings, **kwargs):
+    error = 'Invalid URL'
     if settings.error_redirect:
-        return redirect_response(settings.error_redirect)
+        return redirect_error_response(settings.error_redirect, error)
     body = template_provider.\
         get_template('reset_password_error').\
-        render(error='Invalid URL')
+        render(error=error)
     return skygear.Response(body, status=400, content_type='text/html')
 
 
 def response_error(template_provider, settings, **kwargs):
     if settings.error_redirect:
-        return redirect_response(settings.error_redirect)
+        error = kwargs['error']
+        return redirect_error_response(settings.error_redirect, error)
     return response_form(template_provider, **kwargs)
 
 
