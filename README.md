@@ -32,8 +32,9 @@ The plugin is configured by environment variables.
   his / her password is reset successfully. If absent, the page generated from
   [template](#template) will be returned to user.
 * `FORGOT_PASSWORD_ERROR_REDIRECT` - the url user will be redirect to when
-  his/her password is failed to reset. If absent, the page generated from
-  [template](#template) will be returned to user.
+  his/her password is failed to reset. Error message is passed via query string
+  with key "error". If absent, the page generated from [template](#template)
+  will be returned to user.
 
 ### SMTP settings
 

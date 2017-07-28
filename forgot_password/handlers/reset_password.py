@@ -15,6 +15,7 @@
 
 import logging
 from collections import namedtuple
+from urllib.parse import ParseResult, parse_qsl, urlencode, urlparse
 
 import skygear
 from skygear import error as skyerror
@@ -36,26 +37,9 @@ ResetPasswordRequestParams = namedtuple(
     ['code', 'user_id', 'expire_at', 'user', 'user_record'])
 
 
-def redirect_response(url):
+def get_validated_request_parameters(db_connection, request):
     """
-    A shorthand for returning a http redirect response.
-    """
-    return skygear.Response(status=302, headers=[('Location', url)])
-
-
-def response_form(template_provider, **kwargs):
-    """
-    A shorthand for returning the reset password form as a response.
-    """
-    body = template_provider.\
-        get_template('reset_password_form').\
-        render(**kwargs)
-    return skygear.Response(body, content_type='text/html')
-
-
-def validate_request_parameters(db_connection, request):
-    """
-    Validates reset password request parameters.
+    Validates reset password request parameters, return it if it is valid.
     """
     code = request.values.get('code')
     user_id = request.values.get('user_id')
@@ -91,9 +75,10 @@ def validate_request_parameters(db_connection, request):
                                       user=user, user_record=user_record)
 
 
-def validate_request_password_params(request):
+def get_validated_password(request):
     """
-    Validate of reset password request password parameters.
+    Validate of reset password request password parameters, return it if
+    it is valid.
     """
     password = request.values.get('password')
     password_confirm = request.values.get('confirm')
@@ -108,18 +93,81 @@ def validate_request_password_params(request):
     return password
 
 
-def response_url_error(template_provider, settings, **kwargs):
+def response_url_redirect(url, **kwargs):
+    parsed_url = urlparse(url)
+
+    query_list = parse_qsl(parsed_url.query)
+    for key, value in kwargs.items():
+        query_list.append((key, value))
+
+    new_url = ParseResult(parsed_url.scheme,
+                          parsed_url.netloc,
+                          parsed_url.path,
+                          parsed_url.params,
+                          urlencode(query_list),
+                          parsed_url.fragment)
+
+    return skygear.Response(status=302,
+                            headers=[('Location', new_url.geturl())])
+
+
+def response_form(template_provider, **kwargs):
+    body = template_provider.\
+        get_template('reset_password_form').\
+        render(**kwargs)
+    return skygear.Response(body, content_type='text/html')
+
+
+def response_success(template_provider, settings, **kwargs):
+    # filter some kwargs since some are not capable to be embedded in url
+    # for redirection
+    filtered_kwargs = {
+        'code': kwargs['code'],
+        'user_id': kwargs['user_id'],
+        'expire_at': kwargs['expire_at'],
+    }
+
+    if settings.success_redirect:
+        return response_url_redirect(settings.success_redirect,
+                                     **filtered_kwargs)
+
+    body = template_provider.\
+        get_template('reset_password_success').\
+        render(**kwargs)
+
+    return skygear.Response(body, content_type='text/html')
+
+
+def response_params_error(template_provider, settings, **kwargs):
+    kwargs['error'] = 'Invalid URL'
+
+    # filter some kwargs since some are not capable to be embedded in url
+    # for redirection
+    filtered_kwargs = {
+        'error': kwargs['error'],
+    }
+
     if settings.error_redirect:
-        return redirect_response(settings.error_redirect)
+        return response_url_redirect(settings.error_redirect,
+                                     **filtered_kwargs)
     body = template_provider.\
         get_template('reset_password_error').\
-        render(error='Invalid URL')
+        render(**kwargs)
     return skygear.Response(body, status=400, content_type='text/html')
 
 
 def response_error(template_provider, settings, **kwargs):
+    # filter some kwargs since some are not capable to be embedded in url
+    # for redirection
+    filtered_kwargs = {
+        'code': kwargs['code'],
+        'user_id': kwargs['user_id'],
+        'expire_at': kwargs['expire_at'],
+        'error': kwargs['error'],
+    }
     if settings.error_redirect:
-        return redirect_response(settings.error_redirect)
+        return response_url_redirect(settings.error_redirect,
+                                     **filtered_kwargs)
     return response_form(template_provider, **kwargs)
 
 
@@ -189,9 +237,9 @@ def register_handlers(**kwargs):
         """
         with conn() as c:
             try:
-                params = validate_request_parameters(c, request)
+                params = get_validated_request_parameters(c, request)
             except IllegalArgumentError:
-                return response_url_error(template_provider, settings)
+                return response_params_error(template_provider, settings)
 
             template_params = {
                 'user': params.user,
@@ -206,7 +254,7 @@ def register_handlers(**kwargs):
 
             # Handle form submission
             try:
-                password = validate_request_password_params(request)
+                password = get_validated_password(request)
             except IllegalArgumentError as ex:
                 return response_error(template_provider,
                                       settings,
@@ -216,10 +264,6 @@ def register_handlers(**kwargs):
             user_util.set_new_password(c, params.user.id, password)
             logger.info('Successfully reset password for user.')
 
-            if settings.success_redirect:
-                return redirect_response(settings.success_redirect)
-
-            body = template_provider.\
-                get_template('reset_password_success').\
-                render()
-            return skygear.Response(body, content_type='text/html')
+            return response_success(template_provider,
+                                    settings,
+                                    **template_params)
