@@ -100,6 +100,7 @@ def register_forgot_password_op(mail_sender, settings):
                 'code': code,
                 'user': user,
                 'user_record': user_record,
+                'expire_at': expire_at,
             }
 
             try:
