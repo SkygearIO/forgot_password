@@ -110,11 +110,10 @@ def set_new_password(c, user_id, new_password):
     """
     encoded_password = new_password.encode('utf-8')
     hashed = bcrypt.hashpw(encoded_password, bcrypt.gensalt()).decode()
-    users = get_table('_user')
+    users = get_table('_auth')
     stmt = users.update() \
         .where(users.c.id == user_id) \
         .values(password=hashed) \
         .values(token_valid_since=func.now()) \
-        .values(last_login_at=func.now()) \
         .values(last_seen_at=func.now())
     return c.execute(stmt)
