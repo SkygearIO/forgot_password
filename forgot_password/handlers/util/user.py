@@ -14,10 +14,11 @@
 import hashlib
 from datetime import datetime
 
-import bcrypt
+from skygear.container import SkygearContainer
+from skygear.error import SkygearException
 from skygear.options import options as skyoptions
 from skygear.utils.db import get_table, has_table
-from sqlalchemy.sql import func, select
+from sqlalchemy.sql import select
 
 
 def generate_code(user, expire_at):
@@ -104,16 +105,20 @@ def get_user_and_validate_code(c, user_id, code, expire_at):
     return user
 
 
-def set_new_password(c, user_id, new_password):
+def set_new_password(user_id, new_password):
     """
-    Set the password of a user to a new password.
+    Set the password of a user to a new password
+    with auth:reset_password
     """
-    encoded_password = new_password.encode('utf-8')
-    hashed = bcrypt.hashpw(encoded_password, bcrypt.gensalt()).decode()
-    users = get_table('_auth')
-    stmt = users.update() \
-        .where(users.c.id == user_id) \
-        .values(password=hashed) \
-        .values(token_valid_since=func.now()) \
-        .values(last_seen_at=func.now())
-    return c.execute(stmt)
+    container = SkygearContainer(
+        api_key=skyoptions.masterkey
+    )
+    resp = container.send_action("auth:reset_password", {
+        "auth_id": user_id,
+        "password": new_password,
+    }, plugin_request=True)
+    try:
+        if "error" in resp:
+            raise SkygearException.from_dict(resp["error"])
+    except (ValueError, TypeError, KeyError):
+        raise SkygearContainer("container.send_action is buggy")
