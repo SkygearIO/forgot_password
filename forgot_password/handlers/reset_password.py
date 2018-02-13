@@ -216,11 +216,10 @@ def register_op(**kwargs):
             if not user.email:
                 raise SkygearException('email must be set',
                                        skyerror.ResourceNotFound)
-
-            user_util.set_new_password(c, user.id, new_password)
-            logger.info('Successfully reset password for user.')
-
-            return {'status': 'OK'}
+        # conn ends
+        user_util.set_new_password(user.id, new_password)
+        logger.info('Successfully reset password for user.')
+        return {'status': 'OK'}
 
 
 def register_handlers(**kwargs):
@@ -241,29 +240,27 @@ def register_handlers(**kwargs):
             except IllegalArgumentError:
                 return response_params_error(template_provider, settings)
 
-            template_params = {
-                'user': params.user,
-                'user_record': params.user_record,
-                'code': params.code,
-                'user_id': params.user_id,
-                'expire_at': params.expire_at,
-            }
+        template_params = {
+            'user': params.user,
+            'user_record': params.user_record,
+            'code': params.code,
+            'user_id': params.user_id,
+            'expire_at': params.expire_at,
+        }
 
-            if request.method != 'POST':
-                return response_form(template_provider, **template_params)
+        if request.method != 'POST':
+            return response_form(template_provider, **template_params)
 
-            # Handle form submission
-            try:
-                password = get_validated_password(request)
-            except IllegalArgumentError as ex:
-                return response_error(template_provider,
-                                      settings,
-                                      error=str(ex),
-                                      **template_params)
-
-            user_util.set_new_password(c, params.user.id, password)
+        # Handle form submission
+        try:
+            password = get_validated_password(request)
+            user_util.set_new_password(params.user.id, password)
             logger.info('Successfully reset password for user.')
-
             return response_success(template_provider,
                                     settings,
                                     **template_params)
+        except Exception as ex:
+            return response_error(template_provider,
+                                  settings,
+                                  error=str(ex),
+                                  **template_params)
