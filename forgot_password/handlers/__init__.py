@@ -23,6 +23,7 @@ from .reset_password import register_handlers \
 from .welcome_email import add_templates as add_welcome_email_templates
 from .welcome_email import register_hooks_and_ops \
     as register_welcome_email_hooks_and_ops
+from .verify_code import register as register_verify_code
 
 
 def register_handlers(**kwargs):
@@ -40,3 +41,4 @@ def register_handlers(**kwargs):
                                      **kwargs)
     register_welcome_email_hooks_and_ops(template_provider=template_provider,
                                          **kwargs)
+    register_verify_code(kwargs['verify_settings'])
