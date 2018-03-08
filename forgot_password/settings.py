@@ -22,8 +22,17 @@ from .providers import get_provider_class
 def get_settings_parser():
     parser = SettingsParser('FORGOT_PASSWORD')
 
-    parser.add_setting('app_name', default=skyoptions.appname)
-    parser.add_setting('url_prefix', default=skyoptions.skygear_endpoint)
+    # TODO(cheungpat): py-skygear will have support for specifying
+    # a callable in default param. When that happens, the app name
+    # and endpoint should be specified via a function.
+    # parser.add_setting('app_name', default=skyoptions.appname)
+    # parser.add_setting('url_prefix', default=skyoptions.skygear_endpoint)
+    parser.add_setting('app_name',
+                       default=getattr(skyoptions, 'appname', None),
+                       required=False)
+    parser.add_setting('url_prefix',
+                       default=getattr(skyoptions, 'skygear_endpoint', None),
+                       required=False)
     parser.add_setting(
         'secure_match',
         atype=bool,
