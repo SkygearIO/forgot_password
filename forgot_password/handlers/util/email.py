@@ -43,6 +43,6 @@ class Mailer:
                                mail_from,
                                rcpt_to,
                                **self.smtp_params)
-        except Exception as e:
+        except Exception:
             logger.exception('Unable to send email to the receipient.')
             raise Exception('Unable to send email to the receipient.')
