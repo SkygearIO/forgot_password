@@ -1,3 +1,5 @@
 Jinja2==2.8
 MarkupSafe==0.23
 pyzmail36==1.0.3
+nexmo==2.0.0
+twilio==6.10.4

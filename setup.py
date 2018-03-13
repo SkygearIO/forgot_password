@@ -44,6 +44,8 @@ setup(
             'Jinja2>=2.8',
             'pyzmail36>=1.0.3',
             'skygear>=0.16.0',
+            'nexmo>=2.0.0',
+            'twilio>=6.10.4'
       ],
       cmdclass= {'test': PyTest},
       tests_require=[
