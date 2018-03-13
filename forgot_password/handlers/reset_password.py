@@ -22,7 +22,7 @@ from skygear import error as skyerror
 from skygear.error import SkygearException
 from skygear.utils.db import conn
 
-from .template import FileTemplate
+from ..template import FileTemplate
 from .util import user as user_util
 
 logger = logging.getLogger(__name__)

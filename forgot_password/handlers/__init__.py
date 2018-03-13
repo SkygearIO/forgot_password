@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from .template import TemplateProvider
+from ..template import TemplateProvider
 from .forgot_password import add_templates as add_forgot_password_templates
 from .forgot_password import register_op as register_forgot_password_op
 from .reset_password import add_templates as add_reset_password_templates

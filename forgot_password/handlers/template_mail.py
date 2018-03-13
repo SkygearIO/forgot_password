@@ -15,7 +15,7 @@
 
 import logging
 
-from .template import StringTemplate
+from ..template import StringTemplate
 from .util import email as email_util
 
 logger = logging.getLogger(__name__)

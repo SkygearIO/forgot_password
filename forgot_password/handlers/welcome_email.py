@@ -23,7 +23,7 @@ from skygear.error import SkygearException
 from skygear.models import Record, RecordID
 from skygear.utils.context import current_context
 
-from .template import FileTemplate
+from ..template import FileTemplate
 from .template_mail import TemplateMailSender
 from .util import user as user_util
 
