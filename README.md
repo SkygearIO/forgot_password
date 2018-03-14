@@ -61,6 +61,106 @@ to the newly signed up users.
 * `FORGOT_PASSWORD_WELCOME_EMAIL_REPLY_TO` - the "Reply-to" option of the
   welcome email
 
+### Verify user settings
+
+This settings change the behaviour of verifying the user data:
+
+* `VERIFY_KEYS` - The name of the user record fields which data can be verified.
+  Specify multiple keys by separating them with comma. For example, if the
+  user record contains the `phone` field and `email` field, specify
+  `phone,email`.
+
+* `VERIFY_AUTO_UPDATE` - Specify `true` to automatically update the `verified`
+  flag of the user when the user becomes verified. Default is `false`.
+
+* `VERIFY_AUTO_SEND_SIGNUP` - Specify `true` to automatically send verification
+  to the user when the user signs up. Default is `false`.
+
+* `VERIFY_AUTO_SEND_UPDATE` - Specify `true` to automatically send verification
+  to the user when the user record has updated the fields that can be verified.
+  Default is `false`.
+
+* `VERIFY_REQUIRED` - Specify `true` if the user verification is required
+  to access resources. When `true`, verification is also sent to the user
+  when they sign up. Default is `false`.
+
+* `VERIFY_CRITERIA` - Specify `all` so that all fields in `VERIFY_KEYS` has to
+  be verified for the user to be considered verified. You can also specify
+  a list of fields as criteria. Default is `any`, which means any verified keys
+  will result in the user being considered verified.
+
+* `VERIFY_MODIFY_SCHEMA` - When `true`, the plugin creates the necessary
+  record fields. Default is `true`.
+
+* `VERIFY_MODIFY_ACL` - When `true`, the plugin creates the recommended
+  record fields access control. Default is `true`.
+
+* `VERIFY_ERROR_REDIRECT` - Specify the redirect URL when there is an error
+  to verify user data. Override `VERIFY_ERROR_HTML_URL`.
+
+* `VERIFY_ERROR_HTML_URL` - Specify the URL of the HTML content template when there
+  is an error to verify user data.
+
+The following settings control the behaviour when verifying individual record
+keys. These settings should be prefixed with `VERIFY_KEYS_<key_name>_`. For
+example, set the code format for `phone` record field with
+`VERIFY_KEYS_PHONE_CODE_FORMAT`.
+
+* `CODE_FORMAT` - Specify `numeric` for numeric code. Specify `complex` for
+  alphanumeric codes (higher security). Default is `numeric`.
+
+* `EXPIRY` - Number of seconds after which the code is considered invalid.
+  Specify `0` to disable code expiry (strongly discouraged). Default is 24
+  hours.
+
+* `SUCCESS_REDIRECT` - Specify the redirect URL when user data is verified.
+  Override `SUCCESS_HTML_URL`.
+
+* `SUCCESS_HTML_URL` - Specify the URL of the HTML content template when user
+  data is verified.
+
+* `ERROR_REDIRECT` - Specify the redirect URL when there is an error
+  to verify user data. Override `ERROR_HTML_URL`.
+
+* `ERROR_HTML_URL` - Specify the URL of the HTML content template when there
+  is an error to verify user data.
+
+* `PROVIDER` - Specify the name of the verification provider, see below.
+
+Provider has provider-specific configuration, which should be prefixed with
+`VERIFY_KEYS_<key>_PROVIDER_`. For example, set
+`VERIFY_KEYS_EMAIL_PROVIDER_SUBJECT` to set the subject line of the verification
+email that is sent to the user's `email` address.
+
+For provider `smtp`:
+
+* `SMTP_HOST` - Specify SMTP hostname or IP address. Default to `SMTP_HOST`.
+* `SMTP_PORT` - Specify SMTP port. Default to `SMTP_PORT`.
+* `SMTP_MODE` - Specify SMTP mode. Default to `SMTP_MODE`.
+* `SMTP_LOGIN` - Specify SMTP login name. Default to `SMTP_LOGIN`.
+* `SMTP_PASSWORD` - Specify SMTP login password. Default to `SMTP_PASSWORD`.
+* `SMTP_SENDER` - Specify SMTP sender address. Default to `SMTP_SENDER`.
+* `SMTP_REPLY_TO` - Specify SMTP reply-to address. Default to `SMTP_REPLY_TO`.
+* `SUBJECT` - Specify email subject line.
+* `EMAIL_TEXT_URL` - Specify the URL of the plaintext content template.
+* `EMAIL_HTML_URL` - Specify the URL of the HTML content template (optional).
+
+For provider `twilio`:
+
+* `TWILIO_ACCOUNT_SID` - Specify Twilio account SID.
+  Default to `TWILIO_ACCOUNT_SID`.
+* `TWILIO_AUTH_TOKEN` - Specify Twilio auth token.
+  Default to `TWILIO_AUTH_TOKEN`.
+* `TWILIO_FROM` - Specify SMS sender phone number. Default to `TWILIO_FROM`.
+* `SMS_TEXT_URL` - Specify the URL of the SMS content template.
+
+For provider `nexmo`:
+
+* `NEXMO_API_KEY` - Specify Nexmo API key. Default to `NEXMO_API_KEY`.
+* `NEXMO_API_SECRET` - Specify Nemxo API secret. Default to `NEXMO_API_SECRET`.
+* `NEXMO_FROM` - Specify SMS sender phone number. Default to `NEXMO_FROM`.
+* `SMS_TEXT_URL` - Specify the URL of the SMS content template.
+
 ## Templates
 
 This plugin provides basic HTML and email templates for handling forgot

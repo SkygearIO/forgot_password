@@ -51,6 +51,13 @@ services:
       API_KEY: my_skygear_key
       MASTER_KEY: my_master_key
       LOAD_MODULES: forgot_password
+      VERIFY_KEYS: phone,email
+      VERIFY_KEYS_PHONE_PROVIDER: debug
+      VERIFY_KEYS_EMAIL_PROVIDER: debug
+      VERIFY_AUTO_UPDATE: "true"
+      VERIFY_AUTO_SEND_SIGNUP: "true"
+      VERIFY_AUTO_SEND_UPDATE: "true"
+      VERIFY_CRITERIA: "any"
 
 # The volume container for skygear
 volumes:
