@@ -200,6 +200,18 @@ def get_verify_settings_parser():
         default=None
     )
     parser.add_setting(
+        'modify_schema',
+        atype=bool,
+        resolve=False,
+        default=True
+    )
+    parser.add_setting(
+        'modify_acl',
+        atype=bool,
+        resolve=False,
+        default=True
+    )
+    parser.add_setting(
         'error_redirect',
         atype=str,
         resolve=False,

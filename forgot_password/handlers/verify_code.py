@@ -24,6 +24,8 @@ from skygear.utils.db import conn
 
 from ..providers import get_provider_class
 from ..template import FileTemplate, TemplateProvider
+from .util.schema import (schema_add_key_verified_acl,
+                          schema_add_key_verified_flags)
 from .util.user import fetch_user_record, get_user, save_user_record
 from .util.verify_code import (add_verify_code, generate_code, get_verify_code,
                                set_code_consumed, verified_flag_name)
@@ -34,7 +36,7 @@ logger = logging.getLogger(__name__)
 USER_VERIFIED_FLAG_NAME = 'is_verified'
 
 
-def register(settings):
+def register(settings):  # noqa
     providers = {}
     templates = TemplateProvider()
     for record_key, key_settings in settings.keys.items():
@@ -103,6 +105,20 @@ def register(settings):
         """
         thehandler = VerifyCodeFormHandler(settings, providers, templates)
         return thehandler(request)
+
+    @skygear.event('before-plugins-ready')
+    def before_plugin_ready(*args, **kwargs):
+        """
+        Plugin event handler for updating schema and ACL before server is
+        ready.
+        """
+        managed_flags = [verified_flag_name(k) for k in settings.keys.keys()]
+        if settings.auto_update:
+            managed_flags.append(USER_VERIFIED_FLAG_NAME)
+        if settings.modify_schema:
+            schema_add_key_verified_flags(managed_flags)
+        if settings.modify_acl:
+            schema_add_key_verified_acl(managed_flags)
 
 
 def get_provider(provider_settings, key):
