@@ -88,7 +88,7 @@ def register(settings):  # noqa
         record = update_flags(settings, record, original_record, db)
         return record
 
-    @skygear.after_save('user', async=False)
+    @skygear.after_save('user', async=True)
     def after_user_save_hook(record, original_record, db):
         """
         Performs action upon saving user record such as sending verifications.
