@@ -304,7 +304,7 @@ def send_signup_verification(settings, providers, record, original_record, db):
     for record_key in settings.keys.keys():
         if record.get(record_key, None):
             thelambda = VerifyRequestLambda(settings, providers)
-            thelambda(record['_id'].split('/')[1], record_key)
+            thelambda(record.id.key, record_key)
 
 
 def send_update_verification(settings, providers, record, original_record, db):
@@ -323,7 +323,7 @@ def send_update_verification(settings, providers, record, original_record, db):
     thelambda = VerifyRequestLambda(settings, providers)
     for record_key in settings.keys.keys():
         if is_changed(record, original_record):
-            thelambda(record['_id'].split('/')[1], record_key)
+            thelambda(record.id.key, record_key)
 
 
 def response_url_redirect(url, **kwargs):
