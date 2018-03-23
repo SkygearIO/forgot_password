@@ -58,7 +58,7 @@ class NexmoProvider:
     def send(self, recipient, template_params=None):
         msg = self._message(recipient, template_params or {})
         response = self._client.send_message(msg)
-
+        response = response['messages'][0]
         success = (response['status'] == '0')
         if success:
             logger.info('Sent SMS to `%s`. msg=%s', recipient, msg)
