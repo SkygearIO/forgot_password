@@ -15,6 +15,7 @@ import hashlib
 from datetime import datetime
 
 from skygear.container import SkygearContainer
+from skygear.encoding import deserialize_record, serialize_record
 from skygear.error import SkygearException
 from skygear.options import options as skyoptions
 from skygear.utils.db import get_table, has_table
@@ -116,6 +117,44 @@ def set_new_password(user_id, new_password):
     resp = container.send_action("auth:reset_password", {
         "auth_id": user_id,
         "password": new_password,
+    }, plugin_request=True)
+    try:
+        if "error" in resp:
+            raise SkygearException.from_dict(resp["error"])
+    except (ValueError, TypeError, KeyError):
+        raise SkygearContainer("container.send_action is buggy")
+
+
+def fetch_user_record(auth_id):
+    """
+    Fetch the user record from Skygear Record API. The returned value
+    is a user record in Record class.
+    """
+    container = SkygearContainer(
+        api_key=skyoptions.masterkey
+    )
+
+    resp = container.send_action("record:fetch", {
+        "ids": ['user/{}'.format(auth_id)]
+    }, plugin_request=True)
+    try:
+        if "error" in resp:
+            raise SkygearException.from_dict(resp["error"])
+    except (ValueError, TypeError, KeyError):
+        raise SkygearContainer("container.send_action is buggy")
+    return deserialize_record(resp['result'][0])
+
+
+def save_user_record(user_record):
+    """
+    Save the user record to Skygear Record API.
+    """
+    container = SkygearContainer(
+        api_key=skyoptions.masterkey
+    )
+
+    resp = container.send_action("record:save", {
+        "records": [serialize_record(user_record)]
     }, plugin_request=True)
     try:
         if "error" in resp:

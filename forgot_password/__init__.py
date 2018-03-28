@@ -12,24 +12,51 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 
 from skygear.settings import add_parser as add_setting_parser
 
 from .settings import \
     get_settings_parser, \
     get_smtp_settings_parser, \
-    get_welcome_email_settings_parser
+    get_welcome_email_settings_parser, \
+    get_verify_settings_parser
 from .handlers import register_handlers
+
+import_exc_info = True
+try:
+    from .providers import nexmo  # noqa
+except ImportError as e:
+    logging.warn('Unable to import nexmo provider.'
+                 ' Is `nexmo` package installed?',
+                 exc_info=import_exc_info)
+try:
+    from .providers import twilio  # noqa
+except ImportError as e:
+    logging.warn('Unable to import twilio provider.'
+                 ' Is `twilio` package installed?',
+                 exc_info=import_exc_info)
+try:
+    from .providers import smtp  # noqa
+except ImportError as e:
+    logging.warn('Unable to import smtp provider.'
+                 ' Is `pyzmail36` package installed?',
+                 exc_info=import_exc_info)
+from .providers import debug  # noqa
 
 
 def includeme(settings):
     register_handlers(
         settings=settings.forgot_password,
         smtp_settings=settings.forgot_password_smtp,
-        welcome_email_settings=settings.forgot_password_welcome_email)
+        welcome_email_settings=settings.forgot_password_welcome_email,
+        verify_settings=settings.verify
+    )
 
 
 add_setting_parser('forgot_password', get_settings_parser())
 add_setting_parser('forgot_password_smtp', get_smtp_settings_parser())
 add_setting_parser('forgot_password_welcome_email',
                    get_welcome_email_settings_parser())
+add_setting_parser('verify',
+                   get_verify_settings_parser())

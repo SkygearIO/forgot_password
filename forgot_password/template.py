@@ -149,7 +149,7 @@ class FileTemplate(BaseTemplate):
 
         try:
             return self.get_jinja_env().get_template(self.file_name)
-        except jinja2.TemplateNotFound as ex:
+        except jinja2.TemplateNotFound:
             if self.required:
                 raise TemplateNotFound(self.name)
             return None
