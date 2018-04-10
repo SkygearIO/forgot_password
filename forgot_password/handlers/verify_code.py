@@ -286,8 +286,6 @@ def update_flags(settings, record, original_record, db):
     if settings.auto_update:
         is_verified = should_user_be_verified(settings, record)
         record[USER_VERIFIED_FLAG_NAME] = is_verified
-    elif record.get(USER_VERIFIED_FLAG_NAME, None) is None:
-        record[USER_VERIFIED_FLAG_NAME] = False
     return record
 
 
