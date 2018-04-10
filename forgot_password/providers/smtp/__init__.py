@@ -50,9 +50,9 @@ class SMTPProvider:
         parser.add_setting('subject', atype=str, resolve=False,
                            default='User Verification')
         parser.add_setting('email_text_url', atype=str, resolve=False,
-                           default='')
+                           required=False, default='')
         parser.add_setting('email_html_url', atype=str, resolve=False,
-                           default='')
+                           required=False, default='')
         return parser
 
     @property
