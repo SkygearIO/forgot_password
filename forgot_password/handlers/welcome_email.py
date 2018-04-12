@@ -64,7 +64,7 @@ def register_hooks_and_ops(**kwargs):
 
 
 def register_hooks(mail_sender, settings, welcome_email_settings):
-    @skygear.after_save('user', async=True)
+    @skygear.after_save('user', async=True)  # noqa: NOTE(cheungpat): W606
     def user_after_save(record, original_record, db):
         if original_record:
             # ignore for old users
