@@ -10,14 +10,11 @@ cache:
     - $HOME/.cache/pip
 
 before_install:
-  - pip install --upgrade pip
-  - pip install pylama
-  - pip install isort
-  - pip install lizard
-  - pip install coverage
+  - pip install --upgrade pip setuptools
 
 install:
   - pip install -r requirements.txt
+  - pip install -r test_requirements.txt
 
 script:
   - pylama forgot_password
