@@ -26,7 +26,7 @@ from skygear.utils.context import current_user_id
 from skygear.utils.db import conn
 
 from ..providers import get_provider_class
-from ..template import FileTemplate, TemplateProvider
+from ..template import FileTemplate, StringTemplate, TemplateProvider
 from .util.schema import (schema_add_key_verified_acl,
                           schema_add_key_verified_flags)
 from .util.user import fetch_user_record, get_user, save_user_record
@@ -126,7 +126,8 @@ def register(settings):  # noqa
     @skygear.op('user:verify_request:test', key_required=True)
     def test_verify_request_lambda(record_key,
                                    record_value,
-                                   provider_settings={}):
+                                   provider_settings={},
+                                   templates={}):
         """
         Allow passing extra provider_settings from api for
         provider configuration testing. e.g. sms api key is provided by user
@@ -136,21 +137,30 @@ def register(settings):  # noqa
             **provider_settings
         }
 
+        string_templates = {
+            k: StringTemplate(
+                'verify_{}_{}'.format(record_key, k),
+                v
+            ) for k, v in templates.items()
+        }
+
         _providers = {}
         _providers[record_key] = get_provider(
             argparse.Namespace(**merged_settings),
-            record_key
+            record_key,
+            **string_templates
         )
 
         thelambda = VerifyRequestTestLambda(settings, _providers)
         return thelambda(record_key, record_value)
 
-def get_provider(provider_settings, key):
+
+def get_provider(provider_settings, key, **kwargs):
     """
     Convenient method for returning a provider.
     """
     klass = get_provider_class(provider_settings.name)
-    return klass(key, provider_settings)
+    return klass(key, provider_settings, **kwargs)
 
 
 def should_user_be_verified(settings, user_record):

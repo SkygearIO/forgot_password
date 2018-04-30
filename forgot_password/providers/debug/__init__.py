@@ -4,7 +4,7 @@ from .. import register_provider_class
 
 
 class DebugProvider:
-    def __init__(self, key, settings):
+    def __init__(self, key, settings, **kwargs):
         self.key = key
         self.settings = settings
 

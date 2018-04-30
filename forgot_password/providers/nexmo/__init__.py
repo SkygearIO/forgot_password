@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class NexmoProvider:
-    def __init__(self, key, settings, template=None):
+    def __init__(self, key, settings, template=None, **kwargs):
         self.settings = settings
         if not template:
             template = FileTemplate('verify_{}_text'.format(key),
