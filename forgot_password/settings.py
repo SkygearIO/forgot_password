@@ -41,6 +41,12 @@ def get_settings_parser():
         default=False
     )
     parser.add_setting(
+        'sender_name',
+        resolve=False,
+        required=False,
+        default=''
+    )
+    parser.add_setting(
         'sender',
         resolve=False,
         default='no-reply@skygeario.com'
@@ -49,6 +55,12 @@ def get_settings_parser():
         'subject',
         resolve=False,
         default='Reset password instructions'
+    )
+    parser.add_setting(
+        'reply_to_name',
+        resolve=False,
+        required=False,
+        default=''
     )
     parser.add_setting('reply_to', resolve=False, required=False)
     parser.add_setting(
@@ -92,6 +104,12 @@ def get_welcome_email_settings_parser():
         default=False
     )
     parser.add_setting(
+        'sender_name',
+        resolve=False,
+        required=False,
+        default=''
+    )
+    parser.add_setting(
         'sender',
         resolve=False,
         default='no-reply@skygeario.com'
@@ -100,6 +118,12 @@ def get_welcome_email_settings_parser():
         'subject',
         resolve=False,
         default='Welcome!'
+    )
+    parser.add_setting(
+        'reply_to_name',
+        resolve=False,
+        required=False,
+        default=''
     )
     parser.add_setting('reply_to', resolve=False, required=False)
     parser.add_setting('text_url', resolve=False, required=False)

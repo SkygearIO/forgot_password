@@ -104,11 +104,12 @@ def register_forgot_password_op(mail_sender, settings):
             }
 
             try:
-                mail_sender.send(settings.sender,
-                                 user.email,
-                                 settings.subject,
-                                 reply_to=settings.reply_to,
-                                 template_params=template_params)
+                mail_sender.send(
+                    (settings.sender_name, settings.sender),
+                    user.email,
+                    settings.subject,
+                    reply_to=(settings.reply_to_name, settings.reply_to),
+                    template_params=template_params)
             except Exception as ex:
                 logger.exception('An error occurred sending reset password'
                                  ' email to user.')
@@ -124,7 +125,9 @@ def register_test_forgot_password_op(mail_sender, settings):
                                    html_template=None,
                                    subject=None,
                                    sender=None,
-                                   reply_to=None):
+                                   reply_to=None,
+                                   sender_name='',
+                                   reply_to_name=''):
         access_key_type = current_context().get('access_key_type')
         if not access_key_type or access_key_type != 'master':
             raise SkygearException(
@@ -154,9 +157,11 @@ def register_test_forgot_password_op(mail_sender, settings):
             'user_id': dummy_user.id
         }
 
-        email_sender = sender if sender else settings.sender
+        email_sender = (sender_name, sender) if sender \
+            else (settings.sender_name, settings.sender)
         email_subject = subject if subject else settings.subject
-        email_reply_to = reply_to if reply_to else settings.reply_to
+        email_reply_to = (reply_to_name, reply_to) if reply_to \
+            else (settings.reply_to_name, settings.reply_to)
 
         try:
             mail_sender.send(email_sender,

@@ -99,11 +99,18 @@ def register_hooks(mail_sender, settings, welcome_email_settings):
         }
 
         try:
-            mail_sender.send(welcome_email_settings.sender,
-                             user.email,
-                             welcome_email_settings.subject,
-                             reply_to=welcome_email_settings.reply_to,
-                             template_params=template_params)
+            mail_sender.send(
+                (
+                    welcome_email_settings.sender_name,
+                    welcome_email_settings.sender
+                ),
+                user.email,
+                welcome_email_settings.subject,
+                reply_to=(
+                    welcome_email_settings.reply_to_name,
+                    welcome_email_settings.reply_to
+                ),
+                template_params=template_params)
         except Exception as ex:
             logger.exception('An error occurred when sending welcome email '
                              'to user {}: {}'.format(user.id, str(ex)))
@@ -116,7 +123,9 @@ def register_ops(mail_sender, settings, welcome_email_settings):
                            html_template=None,
                            subject=None,
                            sender=None,
-                           reply_to=None):
+                           reply_to=None,
+                           sender_name='',
+                           reply_to_name=''):
         access_key_type = current_context().get('access_key_type')
         if not access_key_type or access_key_type != 'master':
             raise SkygearException(
@@ -144,10 +153,17 @@ def register_ops(mail_sender, settings, welcome_email_settings):
             'user_record': dummy_record,
         }
 
-        email_sender = sender if sender else welcome_email_settings.sender
+        email_sender = (sender_name, sender) if sender \
+            else (
+                welcome_email_settings.sender_name,
+                welcome_email_settings.sender
+            )
         email_subject = subject if subject else welcome_email_settings.subject
-        email_reply_to = reply_to if reply_to \
-            else welcome_email_settings.reply_to
+        email_reply_to = (reply_to_name, reply_to) if reply_to \
+            else (
+                welcome_email_settings.reply_to_name,
+                welcome_email_settings.reply_to
+            )
 
         try:
             mail_sender.send(email_sender,
