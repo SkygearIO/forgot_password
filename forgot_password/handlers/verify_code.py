@@ -11,13 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import argparse
 import datetime
 import logging
+from collections import namedtuple
 from urllib.parse import ParseResult, parse_qsl, urlencode, urlparse
 
 import skygear
 from skygear import error as skyerror
 from skygear.error import SkygearException
+from skygear.models import Record
 from skygear.options import options as skyoptions
 from skygear.utils.context import current_user_id
 from skygear.utils.db import conn
@@ -120,6 +123,27 @@ def register(settings):  # noqa
         if settings.modify_acl:
             schema_add_key_verified_acl(managed_flags)
 
+    @skygear.op('user:verify_request:test', key_required=True)
+    def test_verify_request_lambda(record_key,
+                                   record_value,
+                                   provider_settings={}):
+        """
+        Allow passing extra provider_settings from api for
+        provider configuration testing. e.g. sms api key is provided by user
+        """
+        merged_settings = {
+            **vars(providers[record_key].settings),
+            **provider_settings
+        }
+
+        _providers = {}
+        _providers[record_key] = get_provider(
+            argparse.Namespace(**merged_settings),
+            record_key
+        )
+
+        thelambda = VerifyRequestTestLambda(settings, _providers)
+        return thelambda(record_key, record_value)
 
 def get_provider(provider_settings, key):
     """
@@ -265,6 +289,35 @@ class VerifyRequestLambda:
             logger.info('Added new verify code `{}` for user `{}`.'.format(
                 code_str, auth_id
             ))
+        self.call_provider(record_key, user, user_record, code_str)
+
+
+class VerifyRequestTestLambda(VerifyRequestLambda):
+
+    def __call__(self, record_key, record_value):
+        if self.is_valid_record_key(record_key):
+            msg = 'record_key `{}` is not configured to verify'.format(
+                record_key
+            )
+            raise SkygearException(msg, skyerror.InvalidArgument)
+
+        if not record_value:
+            msg = 'missing record_value'
+            raise SkygearException(msg, skyerror.InvalidArgument)
+
+        code_str = self.get_code(record_key)
+        user = namedtuple('User', ['id', record_key])(
+            'dummy-id',
+            record_key)
+
+        user_record = Record(
+            'user/dummy-id',
+            'dummy-id',
+            {},
+            data={
+                record_key: record_value
+            }
+        )
         self.call_provider(record_key, user, user_record, code_str)
 
 
