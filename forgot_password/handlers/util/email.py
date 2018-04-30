@@ -25,14 +25,25 @@ class Mailer:
     def send_mail(self, sender, to, subject, text, html=None, reply_to=None):
         """
         Send email to user.
+
+        Arguments:
+        sender - (tuple) a tuple of the form ('Name', 'sender@example.com')
+        to - (string) - recipient address
+        subject - (str) The subject of the message
+        text - (tuple or None) The text version of the message
+        html - (tuple or None) The HTML version of the message
+        reply_to - (tuple) a tuple of the form ('Name', 'reply@example.com')
         """
         encoding = 'utf-8'
         text_args = (text, encoding)
         html_args = (html, encoding) if html else None
         headers = []
 
-        if reply_to:
-            headers.append(('Reply-To', reply_to))
+        if reply_to and reply_to[1]:
+            reply_to_value = pyzmail.generate.format_addresses(
+                [reply_to, ], header_name='from', charset=encoding
+            )
+            headers.append(('Reply-To', reply_to_value))
 
         payload, mail_from, rcpt_to, msg_id = pyzmail.compose_mail(
             sender, [to], subject, encoding, text_args,
