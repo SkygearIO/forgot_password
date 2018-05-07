@@ -126,8 +126,8 @@ def register_test_forgot_password_op(mail_sender, settings):
                                    subject=None,
                                    sender=None,
                                    reply_to=None,
-                                   sender_name='',
-                                   reply_to_name=''):
+                                   sender_name=None,
+                                   reply_to_name=None):
         access_key_type = current_context().get('access_key_type')
         if not access_key_type or access_key_type != 'master':
             raise SkygearException(

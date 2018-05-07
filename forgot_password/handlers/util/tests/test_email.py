@@ -109,3 +109,29 @@ class TestSendMailSenderName(unittest.TestCase):
         assert reply_to_regex.search(args[0]) is None
         assert args[1] == 'no-reply@skygeario.com'
         assert args[2] == ['user@skygeario.com']
+
+    @patch('pyzmail.send_mail2')
+    def test_none_sender_and_reply_to_name(self, mock):
+        mailer = Mailer()
+
+        mailer.send_mail(
+            (None, "no-reply@skygeario.com"),
+            "user@skygeario.com",
+            "User Verification",
+            "You received this email because myapp would like to verify your"
+            " email address.",
+            "<p>You received this email because myapp would like to verify"
+            " your email address.</p>",
+            (None, "admin@skygeario.com"),
+        )
+        args, kwargs = mock.call_args
+        send_to_regex = re.compile(
+            'From: no-reply@skygeario.com'
+        )
+        reply_to_regex = re.compile(
+            'Reply-To: admin@skygeario.com'
+        )
+        assert send_to_regex.search(args[0]) is not None
+        assert reply_to_regex.search(args[0]) is not None
+        assert args[1] == 'no-reply@skygeario.com'
+        assert args[2] == ['user@skygeario.com']
