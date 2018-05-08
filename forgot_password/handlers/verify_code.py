@@ -131,6 +131,39 @@ def register(settings):  # noqa
         """
         Allow passing extra provider_settings from api for
         provider configuration testing. e.g. sms api key is provided by user
+
+        Example:
+        curl 'http://127.0.0.1:3000/' --data-binary '{
+            "action": "user:verify_request:test",
+            "api_key": "master_key",
+            "args": {
+                "record_key": "email",
+                "record_value": "test@example.com",
+                "provider_settings": {
+                },
+                "templates": {
+                    "text_template": "testing",
+                    "html_template": "testing html"
+                }
+            }
+        }'
+
+        curl 'http://127.0.0.1:3000/' --data-binary '{
+            "action": "user:verify_request:test",
+            "api_key": "master_key",
+            "args": {
+                "record_key": "phone",
+                "record_value": "+15005550009",
+                "provider_settings": {
+                    "twilio_from": "+15005550009",
+                    "twilio_account_sid": "",
+                    "twilio_auth_token": ""
+                },
+                "templates": {
+                    "template": "testing sms"
+                }
+            }
+        }'
         """
         access_key_type = current_context().get('access_key_type')
         if not access_key_type or access_key_type != 'master':
