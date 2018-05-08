@@ -22,7 +22,7 @@ from skygear import error as skyerror
 from skygear.error import SkygearException
 from skygear.models import Record
 from skygear.options import options as skyoptions
-from skygear.utils.context import current_user_id
+from skygear.utils.context import current_context, current_user_id
 from skygear.utils.db import conn
 
 from ..providers import get_provider_class
@@ -132,6 +132,13 @@ def register(settings):  # noqa
         Allow passing extra provider_settings from api for
         provider configuration testing. e.g. sms api key is provided by user
         """
+        access_key_type = current_context().get('access_key_type')
+        if not access_key_type or access_key_type != 'master':
+            raise SkygearException(
+                'master key is required',
+                skyerror.AccessKeyNotAccepted
+            )
+
         merged_settings = {
             **vars(providers[record_key].settings),
             **provider_settings
