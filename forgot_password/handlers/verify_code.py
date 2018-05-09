@@ -19,7 +19,7 @@ from urllib.parse import ParseResult, parse_qsl, urlencode, urlparse
 
 import skygear
 from skygear import error as skyerror
-from skygear.error import SkygearException
+from skygear.error import NotAuthenticated, SkygearException
 from skygear.models import Record
 from skygear.options import options as skyoptions
 from skygear.utils.context import current_context, current_user_id
@@ -65,20 +65,26 @@ def register(settings):  # noqa
                      download_url=settings.error_html_url)
     )
 
-    @skygear.op('user:verify_code', user_required=True)
+    @skygear.op('user:verify_code')
     def verify_code_lambda(code):
         """
         This lambda checks the user submitted code.
         """
+        if not current_user_id():
+            raise SkygearException("You must log in to perform this action.",
+                                   code=NotAuthenticated)
         thelambda = VerifyCodeLambda(settings)
         return thelambda(current_user_id(), code)
 
-    @skygear.op('user:verify_request', user_required=True)
+    @skygear.op('user:verify_request')
     def verify_request_lambda(record_key):
         """
         This lambda allows client to request verification
         (i.e. send email or send SMS).
         """
+        if not current_user_id():
+            raise SkygearException("You must log in to perform this action.",
+                                   code=NotAuthenticated)
         thelambda = VerifyRequestLambda(settings, providers)
         return thelambda(current_user_id(), record_key)
 
