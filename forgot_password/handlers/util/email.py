@@ -25,17 +25,34 @@ class Mailer:
     def send_mail(self, sender, to, subject, text, html=None, reply_to=None):
         """
         Send email to user.
+
+        Arguments:
+        sender - (string or tuple) email or a tuple of the form
+            ('Name', 'sender@example.com')
+        to - (string) - recipient address
+        subject - (str) The subject of the message
+        text - (tuple or None) The text version of the message
+        html - (tuple or None) The HTML version of the message
+        reply_to - (string or tuple) email or a tuple of the form
+            ('Name', 'reply@example.com')
         """
         encoding = 'utf-8'
         text_args = (text, encoding)
         html_args = (html, encoding) if html else None
         headers = []
 
-        if reply_to:
-            headers.append(('Reply-To', reply_to))
+        reply_to_tuple = self._convert_email_tuple(reply_to)
+        sender_tuple = self._convert_email_tuple(sender)
+
+        if reply_to_tuple and reply_to_tuple[1]:
+            # only append header when there is reply to email
+            reply_to_value = pyzmail.generate.format_addresses(
+                [reply_to_tuple, ], header_name='Reply-To', charset=encoding
+            )
+            headers.append(('Reply-To', reply_to_value))
 
         payload, mail_from, rcpt_to, msg_id = pyzmail.compose_mail(
-            sender, [to], subject, encoding, text_args,
+            sender_tuple, [to], subject, encoding, text_args,
             html=html_args, headers=headers)
 
         try:
@@ -46,3 +63,16 @@ class Mailer:
         except Exception:
             logger.exception('Unable to send email to the receipient.')
             raise Exception('Unable to send email to the receipient.')
+
+    def _convert_email_tuple(self, email):
+        """
+        Convert email to tuple format or None, email accepts string or tuple.
+        """
+        if not email:
+            return None
+
+        if isinstance(email, str):
+            return ('', email)
+
+        # pyzmail only accepts empty string for false value
+        return tuple(x if x else '' for x in email)

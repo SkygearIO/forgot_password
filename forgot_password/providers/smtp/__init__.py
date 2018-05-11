@@ -43,8 +43,12 @@ class SMTPProvider:
         parser.add_setting('smtp_mode', atype=str, default='normal')
         parser.add_setting('smtp_login', atype=str, required=False)
         parser.add_setting('smtp_password', atype=str, required=False)
+        parser.add_setting('smtp_sender_name', atype=str,
+                           default='')
         parser.add_setting('smtp_sender', atype=str,
                            default='no-reply@skygeario.com')
+        parser.add_setting('smtp_reply_to_name', atype=str,
+                           default='')
         parser.add_setting('smtp_reply_to', atype=str,
                            default='no-reply@skygeario.com')
         parser.add_setting('subject', atype=str, resolve=False,
@@ -75,12 +79,12 @@ class SMTPProvider:
         html_body = self.html_template.render(**template_params) \
             if self.html_template else None
         self._client.send_mail(
-            self.settings.smtp_sender,
+            (self.settings.smtp_sender_name, self.settings.smtp_sender),
             recipient,
             self.settings.subject,
             text_body,
             html_body,
-            self.settings.smtp_reply_to,
+            (self.settings.smtp_reply_to_name, self.settings.smtp_reply_to),
         )
 
 
