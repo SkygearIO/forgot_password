@@ -22,7 +22,8 @@ logger = logging.getLogger(__name__)
 
 
 class SMTPProvider:
-    def __init__(self, key, settings, text_template=None, html_template=None):
+    def __init__(self, key, settings, text_template=None, html_template=None,
+                 **kwargs):
         self.settings = settings
         if not text_template:
             text_template = FileTemplate('verify_{}_text'.format(key),

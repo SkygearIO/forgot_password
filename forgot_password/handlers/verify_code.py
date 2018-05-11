@@ -11,19 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import argparse
 import datetime
 import logging
+from collections import namedtuple
 from urllib.parse import ParseResult, parse_qsl, urlencode, urlparse
 
 import skygear
 from skygear import error as skyerror
 from skygear.error import SkygearException
+from skygear.models import Record
 from skygear.options import options as skyoptions
-from skygear.utils.context import current_user_id
+from skygear.utils.context import current_context, current_user_id
 from skygear.utils.db import conn
 
 from ..providers import get_provider_class
-from ..template import FileTemplate, TemplateProvider
+from ..template import FileTemplate, StringTemplate, TemplateProvider
 from .util.schema import (schema_add_key_verified_acl,
                           schema_add_key_verified_flags)
 from .util.user import fetch_user_record, get_user, save_user_record
@@ -120,13 +123,84 @@ def register(settings):  # noqa
         if settings.modify_acl:
             schema_add_key_verified_acl(managed_flags)
 
+    @skygear.op('user:verify_request:test', key_required=True)
+    def test_verify_request_lambda(record_key,
+                                   record_value,
+                                   provider_settings={},
+                                   templates={}):
+        """
+        Allow passing extra provider_settings from api for
+        provider configuration testing. e.g. sms api key is provided by user
 
-def get_provider(provider_settings, key):
+        Example:
+        curl 'http://127.0.0.1:3000/' --data-binary '{
+            "action": "user:verify_request:test",
+            "api_key": "master_key",
+            "args": {
+                "record_key": "email",
+                "record_value": "test@example.com",
+                "provider_settings": {
+                },
+                "templates": {
+                    "text_template": "testing",
+                    "html_template": "testing html"
+                }
+            }
+        }'
+
+        curl 'http://127.0.0.1:3000/' --data-binary '{
+            "action": "user:verify_request:test",
+            "api_key": "master_key",
+            "args": {
+                "record_key": "phone",
+                "record_value": "+15005550009",
+                "provider_settings": {
+                    "twilio_from": "+15005550009",
+                    "twilio_account_sid": "",
+                    "twilio_auth_token": ""
+                },
+                "templates": {
+                    "template": "testing sms"
+                }
+            }
+        }'
+        """
+        access_key_type = current_context().get('access_key_type')
+        if not access_key_type or access_key_type != 'master':
+            raise SkygearException(
+                'master key is required',
+                skyerror.AccessKeyNotAccepted
+            )
+
+        merged_settings = {
+            **vars(providers[record_key].settings),
+            **provider_settings
+        }
+
+        string_templates = {
+            k: StringTemplate(
+                'verify_{}_{}'.format(record_key, k),
+                v
+            ) for k, v in templates.items()
+        }
+
+        _providers = {}
+        _providers[record_key] = get_provider(
+            argparse.Namespace(**merged_settings),
+            record_key,
+            **string_templates
+        )
+
+        thelambda = VerifyRequestTestLambda(settings, _providers)
+        return thelambda(record_key, record_value)
+
+
+def get_provider(provider_settings, key, **kwargs):
     """
     Convenient method for returning a provider.
     """
     klass = get_provider_class(provider_settings.name)
-    return klass(key, provider_settings)
+    return klass(key, provider_settings, **kwargs)
 
 
 def should_user_be_verified(settings, user_record):
@@ -265,6 +339,35 @@ class VerifyRequestLambda:
             logger.info('Added new verify code `{}` for user `{}`.'.format(
                 code_str, auth_id
             ))
+        self.call_provider(record_key, user, user_record, code_str)
+
+
+class VerifyRequestTestLambda(VerifyRequestLambda):
+
+    def __call__(self, record_key, record_value):
+        if self.is_valid_record_key(record_key):
+            msg = 'record_key `{}` is not configured to verify'.format(
+                record_key
+            )
+            raise SkygearException(msg, skyerror.InvalidArgument)
+
+        if not record_value:
+            msg = 'missing record_value'
+            raise SkygearException(msg, skyerror.InvalidArgument)
+
+        code_str = self.get_code(record_key)
+        user = namedtuple('User', ['id', record_key])(
+            'dummy-id',
+            record_key)
+
+        user_record = Record(
+            'user/dummy-id',
+            'dummy-id',
+            {},
+            data={
+                record_key: record_value
+            }
+        )
         self.call_provider(record_key, user, user_record, code_str)
 
 
