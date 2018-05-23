@@ -34,6 +34,12 @@ from .util.verify_code import (add_verify_code, generate_code, get_verify_code,
                                set_code_consumed, verified_flag_name)
 
 logger = logging.getLogger(__name__)
+try:
+    # Available in py-skygear v1.6
+    from skygear.utils.logging import setLoggerTag
+    setLoggerTag(logger, 'auth_plugin')
+except ImportError:
+    pass
 
 
 USER_VERIFIED_FLAG_NAME = 'is_verified'
