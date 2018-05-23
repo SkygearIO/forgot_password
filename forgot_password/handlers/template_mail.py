@@ -19,6 +19,12 @@ from ..template import StringTemplate
 from .util import email as email_util
 
 logger = logging.getLogger(__name__)
+try:
+    # Available in py-skygear v1.6
+    from skygear.utils.logging import setLoggerTag
+    setLoggerTag(logger, 'forgot_password')
+except ImportError:
+    pass
 
 
 class TemplateMailSender:
