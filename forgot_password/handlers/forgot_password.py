@@ -29,6 +29,12 @@ from .template_mail import TemplateMailSender
 from .util import user as user_util
 
 logger = logging.getLogger(__name__)
+try:
+    # Available in py-skygear v1.6
+    from skygear.utils.logging import setLoggerTag
+    setLoggerTag(logger, 'auth_plugin')
+except ImportError:
+    pass
 
 
 def add_templates(template_provider, settings):

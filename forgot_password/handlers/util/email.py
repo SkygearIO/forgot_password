@@ -16,6 +16,12 @@ import logging
 import pyzmail
 
 logger = logging.getLogger(__name__)
+try:
+    # Available in py-skygear v1.6
+    from skygear.utils.logging import setLoggerTag
+    setLoggerTag(logger, 'auth_plugin')
+except ImportError:
+    pass
 
 
 class Mailer:
