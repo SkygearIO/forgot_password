@@ -7,6 +7,12 @@ from ...template import FileTemplate
 
 
 logger = logging.getLogger(__name__)
+try:
+    # Available in py-skygear v1.6
+    from skygear.utils.logging import setLoggerTag
+    setLoggerTag(logger, 'forgot_password')
+except ImportError:
+    pass
 
 
 class NexmoProvider:
