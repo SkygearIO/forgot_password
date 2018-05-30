@@ -221,7 +221,7 @@ def get_verify_settings_parser():
         atype=str,
         resolve=False,
         required=False,
-        default=None
+        default='any'
     )
     parser.add_setting(
         'modify_schema',
