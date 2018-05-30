@@ -225,12 +225,13 @@ def should_user_be_verified(settings, user_record):
         if user_record.get(verified_flag_name(record_key), False):
             verified_keys.add(record_key)
 
-    if settings.criteria == 'any':
+    criteria = settings.criteria or 'any'
+    if criteria == 'any':
         return len(verified_keys) > 0
-    elif settings.criteria == 'all':
+    elif criteria == 'all':
         return verified_keys == set(settings.keys.keys())
     else:
-        criteria = settings.criteria.split(',')
+        criteria = criteria.split(',')
         return verified_keys == set(criteria)
 
 
