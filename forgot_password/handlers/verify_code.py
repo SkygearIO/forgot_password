@@ -290,7 +290,7 @@ class VerifyRequestLambda:
         return generate_code(self.settings.keys[record_key].code_format)
 
     def get_template_params(self, record_key, user, user_record, code_str):
-        url_prefix = skyoptions.skygear_endpoint
+        url_prefix = self.settings.url_prefix
         if url_prefix.endswith('/'):
             url_prefix = url_prefix[:-1]
         link = '{0}/user/verify-code/form?code={1}&auth_id={2}'\
