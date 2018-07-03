@@ -65,6 +65,10 @@ to the newly signed up users.
 
 This settings change the behaviour of verifying the user data:
 
+* `VERIFY_URL_PREFIX` - the URL prefix for accessing the Skygear
+  Server. The plugin requires this to generate the reset password link.
+  The value should include protocol (e.g. `https://`).
+
 * `VERIFY_KEYS` - The name of the user record fields which data can be verified.
   Specify multiple keys by separating them with comma. For example, if the
   user record contains the `phone` field and `email` field, specify

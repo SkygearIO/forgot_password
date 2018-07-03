@@ -181,6 +181,10 @@ def get_verify_settings_parser():
     """
     parser = SettingsParser('VERIFY')
 
+    parser.add_setting('url_prefix',
+                       default=getattr(skyoptions, 'skygear_endpoint', None),
+                       required=False)
+
     parser.add_setting(
         'keys',
         atype=get_verify_settings_keys_type(),
