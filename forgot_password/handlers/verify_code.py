@@ -477,7 +477,7 @@ class VerifyCodeFormHandler:
         template_name = '{}_error_html'.format(record_key)
         return self.templates.get_template(template_name)
 
-    def response_redirect(url, **kwargs):
+    def response_redirect(self, url, **kwargs):
         filtered_kwargs = {
             k: v
             for k, v in kwargs.items()
