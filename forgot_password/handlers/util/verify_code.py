@@ -29,8 +29,7 @@ def get_verify_code(c, auth_id, code):
     # for the same verification code
     stmt = select([code_table]) \
         .where(and_(code_table.c.auth_id == auth_id,
-                    code_table.c.code == code,
-                    code_table.c.consumed == False)) \
+                    code_table.c.code == code)) \
         .order_by(desc(code_table.c.created_at))  # noqa
     result = c.execute(stmt)
     return result.fetchone()

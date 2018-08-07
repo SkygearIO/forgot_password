@@ -245,7 +245,7 @@ class VerifyCodeLambda:
     def __call__(self, auth_id, code_str):
         with conn() as c:
             code = get_verify_code(c, auth_id, code_str)
-            if not code:
+            if not code or code.consumed:
                 msg = 'the code `{}` is not valid ' \
                       'for user `{}`'.format(code_str, auth_id)
                 raise SkygearException(msg, skyerror.InvalidArgument)
