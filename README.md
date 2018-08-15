@@ -165,6 +165,17 @@ For provider `nexmo`:
 * `NEXMO_FROM` - Specify SMS sender phone number. Default to `NEXMO_FROM`.
 * `SMS_TEXT_URL` - Specify the URL of the SMS content template.
 
+### Verify test provider settings
+
+The plugin provides test api for testing verification email and SMS. Provider
+settings are provided by environment variable and api parameters. The test api
+will merge the setting from environment variable and api parameters, so plugin
+can provide default provider settings and api can overwrite the setting by api
+parameters. The default provider settings are prefixed with
+`VERIFY_TEST_<provider>_PROVIDER_`. For example, set
+`VERIFY_TEST_SMTP_PROVIDER_SUBJECT` to set the testing verification email
+default subject.
+
 ## Templates
 
 This plugin provides basic HTML and email templates for handling forgot

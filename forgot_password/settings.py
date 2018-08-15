@@ -319,3 +319,18 @@ def get_verify_settings_parser_for_key_and_provider(key, provider):
     provider_class = get_provider_class(provider)
     provider_class.configure_parser(key, parser)
     return parser
+
+
+def get_verify_test_provider_settings_parser(provider):
+    """
+    Returns a parser for parsing verify test provider settings.
+    """
+    parser = SettingsParser('VERIFY_TEST_{}_PROVIDER'.format(provider.upper()))
+    provider_class = get_provider_class(provider)
+    provider_class.configure_parser('test', parser)
+    for key in parser.settings:
+        # plugin will try to get the provider config for test verification api
+        # the config is not necessarily required.
+        # For example, nexmo and twilio are provided by user from test api
+        parser.settings[key] = parser.settings[key]._replace(required=False)
+    return parser

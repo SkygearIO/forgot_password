@@ -45,7 +45,7 @@ except ImportError:
 USER_VERIFIED_FLAG_NAME = 'is_verified'
 
 
-def register(settings):  # noqa
+def register(settings, test_provider_settings):  # noqa
     providers = {}
     templates = TemplateProvider()
     for record_key, key_settings in settings.keys.items():
@@ -152,6 +152,7 @@ def register(settings):  # noqa
                 "record_key": "email",
                 "record_value": "test@example.com",
                 "provider_settings": {
+                    "name": "smtp"
                 },
                 "templates": {
                     "text_template": "testing",
@@ -167,6 +168,7 @@ def register(settings):  # noqa
                 "record_key": "phone",
                 "record_value": "+15005550009",
                 "provider_settings": {
+                    "name": "twilio",
                     "twilio_from": "+15005550009",
                     "twilio_account_sid": "",
                     "twilio_auth_token": ""
@@ -184,8 +186,15 @@ def register(settings):  # noqa
                 skyerror.AccessKeyNotAccepted
             )
 
+        provider_name = provider_settings.get('name')
+        if not provider_name:
+            raise SkygearException(
+                'Missing provider',
+                skyerror.InvalidArgument
+            )
+
         merged_settings = {
-            **vars(providers[record_key].settings),
+            **vars(test_provider_settings[provider_name]),
             **provider_settings
         }
 
@@ -358,12 +367,6 @@ class VerifyRequestLambda:
 class VerifyRequestTestLambda(VerifyRequestLambda):
 
     def __call__(self, record_key, record_value):
-        if self.is_valid_record_key(record_key):
-            msg = 'record_key `{}` is not configured to verify'.format(
-                record_key
-            )
-            raise SkygearException(msg, skyerror.InvalidArgument)
-
         if not record_value:
             msg = 'missing record_value'
             raise SkygearException(msg, skyerror.InvalidArgument)
@@ -382,6 +385,9 @@ class VerifyRequestTestLambda(VerifyRequestLambda):
             }
         )
         self.call_provider(record_key, user, user_record, code_str)
+
+    def get_code(self, record_key):
+        return 'testing-code'
 
 
 def update_flags(settings, record, original_record, db):
