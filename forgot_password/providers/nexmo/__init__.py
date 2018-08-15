@@ -69,7 +69,8 @@ class NexmoProvider:
         if success:
             logger.info('Sent SMS to `%s`. msg=%s', recipient, msg)
         else:
-            raise Exception('unable to send SMS')
+            error_message = response.get('error-text', '')
+            raise Exception('Unable to send SMS: %s' % error_message)
 
 
 register_provider_class('nexmo', NexmoProvider)
