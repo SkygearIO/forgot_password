@@ -41,4 +41,5 @@ def register_handlers(**kwargs):
                                      **kwargs)
     register_welcome_email_hooks_and_ops(template_provider=template_provider,
                                          **kwargs)
-    register_verify_code(kwargs['verify_settings'])
+    register_verify_code(kwargs['verify_settings'],
+                         kwargs['verify_test_provider_settings'])
