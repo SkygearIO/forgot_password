@@ -478,7 +478,12 @@ class VerifyCodeFormHandler:
         return self.templates.get_template(template_name)
 
     def get_error_template(self, record_key=None):
-        if not record_key:
+        error_html_url = None
+        if record_key:
+            key_settings = self.settings.keys[record_key]
+            error_html_url = key_settings.error_html_url
+
+        if not error_html_url:
             return self.templates.get_template('error_html')
         template_name = '{}_error_html'.format(record_key)
         return self.templates.get_template(template_name)
@@ -501,13 +506,17 @@ class VerifyCodeFormHandler:
         return skygear.Response(body, content_type='text/html')
 
     def response_error(self, record_key=None, **kwargs):
+        error_redirect = None
         if record_key:
             key_settings = self.settings.keys[record_key]
             error_redirect = key_settings.error_redirect
-            template = self.get_error_template(record_key)
-        else:
+
+        # fallback to verify user error redirect if key setting is empty
+        if not error_redirect:
             error_redirect = self.settings.error_redirect
-            template = self.get_error_template()
+
+        # get_error_template handles whether record_key is or is not empty
+        template = self.get_error_template(record_key)
 
         if error_redirect:
             return self.response_redirect(error_redirect, **kwargs)
