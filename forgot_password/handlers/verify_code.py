@@ -94,7 +94,7 @@ def register(settings, test_provider_settings):  # noqa
         thelambda = VerifyRequestLambda(settings, providers)
         return thelambda(current_user_id(), record_key)
 
-    @skygear.before_save('user', async=False)  # noqa: NOTE(cheungpat): W606
+    @skygear.before_save('user', async_=False)
     def before_user_save_hook(record, original_record, db):
         """
         Checks the user record for data changes so that verified flag
@@ -103,7 +103,7 @@ def register(settings, test_provider_settings):  # noqa
         record = update_flags(settings, record, original_record, db)
         return record
 
-    @skygear.after_save('user', async=True)  # noqa: NOTE(cheungpat): W606
+    @skygear.after_save('user', async_=True)
     def after_user_save_hook(record, original_record, db):
         """
         Performs action upon saving user record such as sending verifications.
