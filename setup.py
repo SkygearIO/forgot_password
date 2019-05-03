@@ -43,7 +43,7 @@ setup(
       install_requires=[
             'Jinja2>=2.8',
             'pyzmail36>=1.0.3',
-            'skygear>=0.16.0',
+            'skygear>=1.6.0',
             'nexmo>=2.0.0',
             'twilio>=6.10.4'
       ],
