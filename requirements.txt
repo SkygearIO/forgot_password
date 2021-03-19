@@ -9,7 +9,7 @@ ConfigArgParse==0.13.0
 cryptography==2.3
 docutils==0.14
 idna==2.7
-Jinja2==2.10
+Jinja2==2.11.3
 jmespath==0.9.3
 MarkupSafe==1.0
 nexmo==2.1.0
