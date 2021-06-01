@@ -28,6 +28,6 @@ skygear==1.6.0
 SQLAlchemy==1.2.10
 strict-rfc3339==0.7
 twilio==6.16.0
-urllib3==1.23
+urllib3==1.26.5
 websocket-client==0.48.0
 Werkzeug==0.14.1
